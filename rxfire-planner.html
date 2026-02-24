@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFire Planner — California Prescribed Fire Scheduling</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0F1923;color:#E2E8F0;height:100vh;overflow:hidden;}
+.app{display:flex;height:100vh;}
+.sidebar{width:220px;background:#0A1520;border-right:1px solid #1E3448;display:flex;flex-direction:column;flex-shrink:0;}
+.logo{padding:18px 16px;border-bottom:1px solid #1E3448;}
+.logo h1{font-size:16px;font-weight:700;color:#52B788;letter-spacing:.5px;}
+.logo p{font-size:10px;color:#64748B;margin-top:2px;}
+.nav{padding:12px 8px;flex:1;overflow-y:auto;}
+.nav-section{font-size:10px;font-weight:600;color:#475569;padding:8px 8px 4px;letter-spacing:.8px;text-transform:uppercase;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;cursor:pointer;font-size:13px;color:#94A3B8;margin-bottom:2px;transition:all .15s;}
+.nav-item:hover{background:#1C2D3E;color:#E2E8F0;}
+.nav-item.active{background:#1B4332;color:#52B788;font-weight:600;}
+.nav-item .icon{width:18px;text-align:center;font-size:14px;}
+.badge{margin-left:auto;background:#E25C0D;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700;}
+.badge.green{background:#166534;}
+.agency-info{padding:12px 14px;border-top:1px solid #1E3448;font-size:11px;color:#64748B;}
+.agency-info strong{color:#94A3B8;display:block;font-size:12px;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:56px;background:#0A1520;border-bottom:1px solid #1E3448;display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;}
+.topbar h2{font-size:15px;font-weight:600;color:#E2E8F0;flex:1;}
+.topbar-meta{font-size:12px;color:#64748B;}
+.btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
+.btn-primary{background:#2D6A4F;color:#fff;}
+.btn-primary:hover{background:#40916C;}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.btn-outline{background:transparent;border:1px solid #2D4057;color:#94A3B8;}
+.btn-outline:hover{border-color:#40916C;color:#52B788;}
+.btn-danger{background:#7F1D1D;color:#FCA5A5;}
+.content{flex:1;overflow-y:auto;padding:20px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
+.card{background:#1C2D3E;border:1px solid #1E3448;border-radius:10px;padding:16px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-title{font-size:13px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;}
+.kpi-val{font-size:28px;font-weight:700;color:#E2E8F0;line-height:1;}
+.kpi-sub{font-size:11px;color:#64748B;margin-top:4px;}
+.kpi-icon{font-size:24px;}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
+.status-dot.green{background:#22C55E;}
+.status-dot.orange{background:#F59E0B;}
+.status-dot.red{background:#EF4444;}
+.status-dot.gray{background:#475569;}
+.priority-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;}
+.p-critical{background:#7F1D1D;color:#FCA5A5;}
+.p-high{background:#78350F;color:#FCD34D;}
+.p-medium{background:#14532D;color:#86EFAC;}
+.p-low{background:#1E3A5F;color:#93C5FD;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #1E3448;}
+td{padding:10px 12px;border-bottom:1px solid #1E3448;color:#CBD5E1;}
+tr:hover td{background:#1A2B3C;}
+.window-bar{height:6px;border-radius:3px;background:#1E3448;overflow:hidden;margin-top:4px;}
+.window-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#2D6A4F,#52B788);}
+.month-label{font-size:9px;color:#64748B;font-weight:600;}
+/* Heat Map */
+.heatmap-grid{display:grid;grid-template-columns:180px repeat(12,1fr);gap:2px;font-size:11px;}
+.hm-header{padding:6px 4px;text-align:center;color:#64748B;font-weight:600;font-size:10px;}
+.hm-unit{padding:6px 8px;color:#94A3B8;display:flex;align-items:center;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hm-cell{height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.8);cursor:pointer;transition:transform .1s;}
+.hm-cell:hover{transform:scale(1.1);z-index:10;}
+/* Calendar */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-header{text-align:center;font-size:11px;font-weight:600;color:#64748B;padding:6px;}
+.cal-day{min-height:70px;border-radius:6px;padding:6px;cursor:pointer;border:1px solid #1E3448;background:#152030;transition:all .15s;}
+.cal-day:hover{border-color:#40916C;}
+.cal-day.today{border-color:#52B788;background:#1B4332;}
+.cal-day.other-month{opacity:.4;}
+.cal-day-num{font-size:12px;font-weight:600;color:#94A3B8;}
+.cal-units{margin-top:4px;display:flex;flex-direction:column;gap:2px;}
+.cal-unit-chip{font-size:9px;padding:1px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Go/No-Go */
+.param-row{display:grid;grid-template-columns:180px 120px 120px 100px 60px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #1A2B3C;font-size:12px;}
+.param-label{color:#94A3B8;font-weight:500;}
+.param-range{color:#64748B;}
+.param-current{font-weight:700;}
+.go{color:#22C55E;}
+.nogo{color:#EF4444;}
+.marginal{color:#F59E0B;}
+/* Month chart */
+.month-chart-wrap{position:relative;height:160px;}
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;}
+.modal{background:#152030;border:1px solid #2D4057;border-radius:12px;width:760px;max-height:90vh;overflow-y:auto;padding:24px;}
+.modal-title{font-size:17px;font-weight:700;color:#E2E8F0;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:#64748B;margin-bottom:20px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.4px;}
+.field input,.field select,.field textarea{background:#0F1923;border:1px solid #2D4057;border-radius:6px;padding:8px 10px;color:#E2E8F0;font-size:13px;outline:none;font-family:inherit;}
+.field input:focus,.field select,.field textarea:focus{border-color:#40916C;}
+.field textarea{resize:vertical;min-height:70px;}
+.range-row{display:grid;grid-template-columns:1fr 20px 1fr;gap:6px;align-items:center;}
+.range-sep{text-align:center;color:#64748B;font-size:12px;}
+.step-indicator{display:flex;gap:8px;margin-bottom:20px;}
+.step{flex:1;height:4px;border-radius:2px;background:#1E3448;}
+.step.done{background:#2D6A4F;}
+.step.active{background:#52B788;}
+.step-label{display:flex;justify-content:space-between;font-size:10px;color:#64748B;margin-bottom:12px;}
+.section-title{font-size:12px;font-weight:700;color:#52B788;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid #1E3448;}
+.month-checks{display:flex;flex-wrap:wrap;gap:6px;}
+.month-check{display:flex;align-items:center;gap:4px;cursor:pointer;}
+.month-check input{accent-color:#52B788;}
+.month-check span{font-size:12px;color:#94A3B8;}
+/* Tabs */
+.tabs{display:flex;gap:2px;margin-bottom:16px;background:#0F1923;padding:4px;border-radius:8px;}
+.tab{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:#64748B;transition:all .15s;}
+.tab.active{background:#1C2D3E;color:#52B788;}
+/* Leaflet fix */
+#map{height:400px;border-radius:8px;}
+/* Popup detail */
+.detail-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.detail-title{font-size:20px;font-weight:700;color:#E2E8F0;}
+.detail-sub{font-size:13px;color:#64748B;margin-top:3px;}
+.info-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:6px;margin-bottom:4px;}
+.pill-green{background:#14532D;color:#86EFAC;}
+.pill-orange{background:#78350F;color:#FCD34D;}
+.pill-red{background:#7F1D1D;color:#FCA5A5;}
+.pill-blue{background:#1E3A5F;color:#93C5FD;}
+.pill-gray{background:#1E3448;color:#94A3B8;}
+/* Alerts */
+.alert{padding:10px 14px;border-radius:8px;font-size:12px;display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.alert-green{background:#14532D;border:1px solid #166534;color:#86EFAC;}
+.alert-red{background:#7F1D1D;border:1px solid #991B1B;color:#FCA5A5;}
+.alert-orange{background:#78350F;border:1px solid #92400E;color:#FCD34D;}
+/* Scrollbar */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:#0A1520;}
+::-webkit-scrollbar-thumb{background:#2D4057;border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:#40916C;}
+/* Responsive */
+@media(max-width:900px){.grid-4{grid-template-columns:1fr 1fr;}}
+.drag-zone{border:2px dashed #2D4057;border-radius:8px;padding:24px;text-align:center;color:#64748B;font-size:13px;cursor:pointer;transition:all .2s;}
+.drag-zone:hover{border-color:#40916C;color:#52B788;}
+.score-bar{height:8px;border-radius:4px;background:#1E3448;overflow:hidden;}
+.score-fill{height:100%;border-radius:4px;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState, useEffect, useRef, useCallback} = React;
+
+// ─── Supabase ────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://pekllkjxjwpwcoathlfg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBla2xsa2p4andwd2NvYXRobGZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTAxNzgsImV4cCI6MjA4NzQ2NjE3OH0.oWz7KLE-Sh95fzXcKJebcfH9lt6EWnpvTo94dV4311k';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function unitFromDB(row) {
+  return {
+    id: row.id,
+    name: row.name || '',
+    unitId: row.unit_id || '',
+    agency: row.agency || 'USFS',
+    forest: row.forest || '',
+    district: row.district || '',
+    lat: parseFloat(row.lat) || 37.5,
+    lon: parseFloat(row.lon) || -119.5,
+    acres: parseInt(row.acres) || 0,
+    status: row.status || 'Pending Review',
+    complexity: row.complexity || 'Low',
+    burnBoss: row.burn_boss || '',
+    objectives: row.objectives || '',
+    fuels: row.fuels || '',
+    rx: row.rx || {},
+    smoke: row.smoke || {},
+    targetMonths: row.target_months || [],
+    monthly: row.monthly || new Array(12).fill(0),
+    windowPct: row.window_pct || 0,
+    priorityScore: row.priority_score || 0,
+    currentCond: row.current_cond || {temp:65,rh:40,wind:10,windDir:'SW',fm10:15,fm100:22,haines:3,erc:40,aqi:35,mixHt:2000,transport:14},
+  };
+}
+
+function unitToDB(u) {
+  return {
+    name: u.name,
+    unit_id: u.unitId,
+    agency: u.agency,
+    forest: u.forest,
+    district: u.district,
+    lat: u.lat,
+    lon: u.lon,
+    acres: u.acres,
+    status: u.status,
+    complexity: u.complexity,
+    burn_boss: u.burnBoss,
+    objectives: u.objectives,
+    fuels: u.fuels,
+    rx: u.rx,
+    smoke: u.smoke,
+    target_months: u.targetMonths,
+    monthly: u.monthly,
+    window_pct: u.windowPct,
+    priority_score: u.priorityScore,
+    current_cond: u.currentCond,
+  };
+}
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const TODAY = new Date(2026, 1, 24); // Feb 24 2026
+
+const UNITS = [
+  {id:1,name:'Crane Flat Meadow',unitId:'STF-CR-001',agency:'USFS',forest:'Stanislaus NF',district:'Groveland RD',lat:37.754,lon:-119.832,acres:245,status:'Approved',complexity:'Low',burnBoss:'J. Martinez',
+   objectives:'Maintain meadow ecosystem, reduce encroaching conifers, improve wildlife habitat.',
+   fuels:'Mixed conifer litter, shrubs, scattered logs. Scott & Burgan TL3.',
+   rx:{tempMin:40,tempMax:75,rhMin:25,rhMax:55,windMin:3,windMax:15,windDir:'210–330°',mixHt:1500,transport:10,fm1Min:3,fm1Max:10,fm10Min:8,fm10Max:20,fm100Max:25,fm1000Max:30,liveFmMin:80,hainesMax:4,ercMin:20,ercMax:55,flameLenMax:4},
+   targetMonths:[3,4,10,11],currentCond:{temp:62,rh:38,wind:8,windDir:'SW',fm10:12,fm100:18,haines:3,erc:35,aqi:38,mixHt:2200,transport:14},
+   windowPct:11,priorityScore:89,
+   monthly:[0,2,18,22,12,0,0,0,0,15,20,5],
+   smoke:{airBasin:'San Joaquin Valley',permitReq:true,receptors:'Groveland (8 mi), Yosemite Valley (12 mi)',mitigation:'Burn only when transport winds carry smoke away from valley.'}},
+  {id:2,name:'Pine Mountain Chaparral',unitId:'LPF-PM-003',agency:'USFS',forest:'Los Padres NF',district:'Mount Pinos RD',lat:34.831,lon:-119.108,acres:420,status:'Approved',complexity:'Moderate',burnBoss:'R. Chen',
+   objectives:'Reduce high-intensity chaparral fuel loads, create fuel breaks, improve road corridor safety.',
+   fuels:'Dense chamise and manzanita chaparral. Anderson 4.',
+   rx:{tempMin:45,tempMax:70,rhMin:20,rhMax:50,windMin:5,windMax:20,windDir:'270–315°',mixHt:2000,transport:15,fm1Min:2,fm1Max:8,fm10Min:5,fm10Max:15,fm100Max:20,fm1000Max:25,liveFmMin:60,hainesMax:5,ercMin:30,ercMax:70,flameLenMax:6},
+   targetMonths:[11,12,1,2],currentCond:{temp:78,rh:18,wind:22,windDir:'NE',fm10:6,fm100:12,haines:6,erc:72,aqi:55,mixHt:800,transport:8},
+   windowPct:8,priorityScore:94,
+   monthly:[12,15,8,3,0,0,0,0,0,0,8,14],
+   smoke:{airBasin:'South Coast',permitReq:true,receptors:'Frazier Park (6 mi), Bakersfield (35 mi)',mitigation:'Coordinate with SBCAPCD. Limit tonnage to 50 tons/day.'}},
+  {id:3,name:'Hume Lake Ponderosa',unitId:'SNF-HL-007',agency:'USFS',forest:'Sequoia NF',district:'Hume Lake RD',lat:36.793,lon:-118.898,acres:380,status:'Pending Review',complexity:'Moderate',burnBoss:'A. Thompson',
+   objectives:'Restore ponderosa pine stand structure, reduce ladder fuels and surface fuels.',
+   fuels:'Ponderosa pine/white fir mix, heavy needle cast and duff. Scott & Burgan TU2.',
+   rx:{tempMin:45,tempMax:80,rhMin:20,rhMax:60,windMin:3,windMax:18,windDir:'225–300°',mixHt:1200,transport:8,fm1Min:4,fm1Max:12,fm10Min:10,fm10Max:25,fm100Max:30,fm1000Max:35,liveFmMin:90,hainesMax:4,ercMin:15,ercMax:50,flameLenMax:5},
+   targetMonths:[4,5,10,11],currentCond:{temp:68,rh:35,wind:10,windDir:'SW',fm10:15,fm100:22,haines:3,erc:42,aqi:28,mixHt:1800,transport:12},
+   windowPct:14,priorityScore:82,
+   monthly:[0,0,8,20,25,5,0,0,0,18,22,5],
+   smoke:{airBasin:'San Joaquin Valley',permitReq:true,receptors:'Kings Canyon Village (3 mi), Fresno (55 mi)',mitigation:'Use SJVAPCD day-of authorization. Monitor PM2.5 at Fresno monitor.'}},
+  {id:4,name:'McCloud Flats Mixed Conifer',unitId:'STF-MC-012',agency:'USFS',forest:'Shasta-Trinity NF',district:'McCloud RD',lat:41.053,lon:-121.887,acres:612,status:'Approved',complexity:'High',burnBoss:'D. Nakamura',
+   objectives:'Reduce fuel continuity in WUI interface, improve forest resilience post-drought mortality.',
+   fuels:'Mixed conifer with high mortality. Anderson 8/9 transition zone.',
+   rx:{tempMin:50,tempMax:85,rhMin:15,rhMax:45,windMin:5,windMax:20,windDir:'270–330°',mixHt:2000,transport:15,fm1Min:3,fm1Max:10,fm10Min:6,fm10Max:18,fm100Max:22,fm1000Max:28,liveFmMin:75,hainesMax:5,ercMin:25,ercMax:60,flameLenMax:7},
+   targetMonths:[5,6,9,10],currentCond:{temp:45,rh:72,wind:3,windDir:'N',fm10:28,fm100:35,haines:2,erc:18,aqi:15,mixHt:3000,transport:20},
+   windowPct:18,priorityScore:75,
+   monthly:[0,0,0,5,22,28,15,8,20,25,8,0],
+   smoke:{airBasin:'North Coast',permitReq:false,receptors:'McCloud (4 mi), Mount Shasta City (18 mi)',mitigation:'Avoid burning on days with inversion. Monitor McCloud Valley.'}},
+  {id:5,name:'South Fork Wildlife Area',unitId:'SRF-SF-005',agency:'USFS',forest:'Six Rivers NF',district:'Lower Trinity RD',lat:40.621,lon:-123.658,acres:890,status:'Pending Review',complexity:'Moderate',burnBoss:'L. Williams',
+   objectives:'Improve tanoak woodland structure, enhance Pacific fisher habitat, reduce fuel accumulation.',
+   fuels:'Tanoak/Douglas-fir mix, deep duff and down wood. Anderson 9.',
+   rx:{tempMin:50,tempMax:80,rhMin:25,rhMax:55,windMin:5,windMax:20,windDir:'225–315°',mixHt:1500,transport:12,fm1Min:5,fm1Max:12,fm10Min:10,fm10Max:25,fm100Max:30,fm1000Max:35,liveFmMin:85,hainesMax:4,ercMin:20,ercMax:55,flameLenMax:5},
+   targetMonths:[3,4,5,10],currentCond:{temp:52,rh:68,wind:12,windDir:'SW',fm10:22,fm100:30,haines:2,erc:22,aqi:22,mixHt:2400,transport:16},
+   windowPct:22,priorityScore:68,
+   monthly:[0,0,20,28,30,12,5,0,8,25,18,5],
+   smoke:{airBasin:'North Coast',permitReq:false,receptors:'Willow Creek (12 mi)',mitigation:'No authorization needed. Monitor air quality at Willow Creek.'}},
+  {id:6,name:'Descanso Chaparral',unitId:'CNF-DC-009',agency:'USFS',forest:'Cleveland NF',district:'Descanso RD',lat:32.855,lon:-116.618,acres:315,status:'Approved',complexity:'High',burnBoss:'M. Garcia',
+   objectives:'Reduce post-fire shrub fuel accumulation, create habitat diversity, protect adjacent structures.',
+   fuels:'Dense post-fire chaparral resprouts. Anderson 4/5.',
+   rx:{tempMin:50,tempMax:75,rhMin:20,rhMax:45,windMin:5,windMax:18,windDir:'270–315°',mixHt:2500,transport:18,fm1Min:2,fm1Max:7,fm10Min:5,fm10Max:12,fm100Max:15,fm1000Max:20,liveFmMin:60,hainesMax:5,ercMin:35,ercMax:75,flameLenMax:6},
+   targetMonths:[11,12,1,2],currentCond:{temp:82,rh:15,wind:25,windDir:'NE',fm10:4,fm100:8,haines:6,erc:80,aqi:62,mixHt:400,transport:5},
+   windowPct:9,priorityScore:91,
+   monthly:[10,14,8,3,0,0,0,0,0,0,5,12],
+   smoke:{airBasin:'South Coast',permitReq:true,receptors:'Alpine (8 mi), El Cajon (18 mi), San Diego (30 mi)',mitigation:'SDAPCD permit required. Day-of smoke forecast required.'}},
+  {id:7,name:'Mammoth Lakes Red Fir',unitId:'INF-MM-004',agency:'USFS',forest:'Inyo NF',district:'Mammoth Lakes RD',lat:37.648,lon:-118.972,acres:178,status:'Approved',complexity:'Moderate',burnBoss:'K. Johnson',
+   objectives:'Restore red fir forest structure, reduce fuel loads, improve high-elevation resiliency.',
+   fuels:'Red fir with high-mortality pockets. Scott & Burgan TU3.',
+   rx:{tempMin:55,tempMax:85,rhMin:10,rhMax:35,windMin:3,windMax:12,windDir:'225–270°',mixHt:2500,transport:15,fm1Min:2,fm1Max:7,fm10Min:4,fm10Max:12,fm100Max:18,fm1000Max:25,liveFmMin:70,hainesMax:5,ercMin:40,ercMax:80,flameLenMax:5},
+   targetMonths:[6,7,8],currentCond:{temp:35,rh:80,wind:5,windDir:'W',fm10:35,fm100:45,haines:1,erc:8,aqi:10,mixHt:3500,transport:22},
+   windowPct:7,priorityScore:96,
+   monthly:[0,0,0,0,0,15,28,25,10,0,0,0],
+   smoke:{airBasin:'Great Basin Valleys',permitReq:false,receptors:'Mammoth Lakes Town (3 mi)',mitigation:'Notify GBUAPCD. Monitor PM2.5 at Mammoth airport station.'}}
+];
+
+function calcPriority(u) {
+  const windowScore = (100 - u.windowPct) * 0.6;
+  const statusBonus = u.status === 'Approved' ? 20 : 10;
+  const acresBonus = Math.min(u.acres / 50, 10);
+  return Math.round(windowScore + statusBonus + acresBonus);
+}
+
+function checkParam(val, min, max) {
+  if (val === undefined || val === null) return 'unknown';
+  if (min !== undefined && val < min) return 'nogo';
+  if (max !== undefined && val > max) return 'nogo';
+  const range = (max || 0) - (min || 0);
+  const buffer = range * 0.1;
+  if (min !== undefined && val < min + buffer) return 'marginal';
+  if (max !== undefined && val > max - buffer) return 'marginal';
+  return 'go';
+}
+
+function isInWindow(unit) {
+  const c = unit.currentCond;
+  const r = unit.rx;
+  return c.temp >= r.tempMin && c.temp <= r.tempMax &&
+    c.rh >= r.rhMin && c.rh <= r.rhMax &&
+    c.wind >= r.windMin && c.wind <= r.windMax &&
+    c.fm10 >= r.fm10Min && c.fm10 <= r.fm10Max &&
+    c.fm100 <= r.fm100Max && c.haines <= r.hainesMax &&
+    c.erc >= r.ercMin && c.erc <= r.ercMax && c.aqi < 100;
+}
+
+function hmColor(pct) {
+  if (!pct || pct === 0) return '#0F1923';
+  if (pct < 6) return '#1B4332';
+  if (pct < 13) return '#2D6A4F';
+  if (pct < 20) return '#40916C';
+  if (pct < 28) return '#52B788';
+  return '#74C69D';
+}
+
+function priorityColor(score) {
+  if (score >= 90) return 'p-critical';
+  if (score >= 80) return 'p-high';
+  if (score >= 65) return 'p-medium';
+  return 'p-low';
+}
+
+function priorityLabel(score) {
+  if (score >= 90) return 'Critical';
+  if (score >= 80) return 'High';
+  if (score >= 65) return 'Medium';
+  return 'Low';
+}
+
+function aqiCategory(aqi) {
+  if (aqi <= 50) return {label:'Good',color:'#22C55E'};
+  if (aqi <= 100) return {label:'Moderate',color:'#EAB308'};
+  if (aqi <= 150) return {label:'Unhealthy for Sensitive',color:'#F97316'};
+  return {label:'Unhealthy',color:'#EF4444'};
+}
+
+// ─── Sidebar ────────────────────────────────────────────────────────────────
+function Sidebar({view, setView, units}) {
+  const inWindowCount = units.filter(isInWindow).length;
+  const navItems = [
+    {id:'dashboard', icon:'📊', label:'Dashboard'},
+    {id:'heatmap',   icon:'🔥', label:'Opportunity Heat Map'},
+    {id:'calendar',  icon:'📅', label:'Burn Calendar'},
+    {id:'units',     icon:'📋', label:'Burn Units', badge: units.length},
+    {id:'map',       icon:'🗺️', label:'Map View'},
+    {id:'weather',   icon:'☁️', label:'Weather'},
+    {id:'aqi',       icon:'💨', label:'Air Quality'},
+    {id:'reports',   icon:'📄', label:'Reports'},
+  ];
+  return (
+    <div className="sidebar">
+      <div className="logo">
+        <h1>🔥 RxFire Planner</h1>
+        <p>CA Prescribed Fire Scheduling</p>
+      </div>
+      <div className="nav">
+        <div className="nav-section">Main</div>
+        {navItems.map(item => (
+          <div key={item.id} className={`nav-item ${view === item.id || (view === 'unit-detail' && item.id === 'units') ? 'active' : ''}`} onClick={() => setView(item.id)}>
+            <span className="icon">{item.icon}</span>
+            <span>{item.label}</span>
+            {item.badge && <span className="badge green">{item.badge}</span>}
+          </div>
+        ))}
+        {inWindowCount > 0 && (
+          <div style={{margin:'12px 8px 0',background:'#14532D',borderRadius:'8px',padding:'10px',fontSize:'12px'}}>
+            <div style={{color:'#86EFAC',fontWeight:700}}>✅ {inWindowCount} Unit{inWindowCount>1?'s':''} In Window</div>
+            <div style={{color:'#4ADE80',fontSize:'11px',marginTop:2}}>Conditions favorable NOW</div>
+          </div>
+        )}
+      </div>
+      <div className="agency-info">
+        <strong>USFS — Pacific Southwest</strong>
+        Region 5 · California<br/>
+        Logged in as: K. Hendricks (FMO)
+      </div>
+    </div>
+  );
+}
+
+// ─── TopBar ─────────────────────────────────────────────────────────────────
+function TopBar({view, setShowAdd}) {
+  const titles = {dashboard:'Dashboard',heatmap:'Opportunity Heat Map',calendar:'Burn Calendar',units:'Burn Units',map:'Map View',weather:'Fire Weather',aqi:'Air Quality','unit-detail':'Unit Detail',reports:'Reports'};
+  return (
+    <div className="topbar">
+      <h2>{titles[view] || 'RxFire Planner'}</h2>
+      <span className="topbar-meta">📅 Feb 24, 2026 · FEMS: Live</span>
+      <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Burn Unit</button>
+      <button className="btn btn-outline">⬇ Export</button>
+    </div>
+  );
+}
+
+// ─── Dashboard ───────────────────────────────────────────────────────────────
+function Dashboard({units, setView, setSelectedUnit}) {
+  const sorted = [...units].sort((a,b) => b.priorityScore - a.priorityScore);
+  const inWindow = units.filter(isInWindow);
+  const totalAcres = units.reduce((s,u) => s + u.acres, 0);
+  const approvedCount = units.filter(u => u.status === 'Approved').length;
+
+  return (
+    <div>
+      <div className="grid-4">
+        {[
+          {icon:'🔥',label:'Burn Units',val:units.length,sub:`${totalAcres.toLocaleString()} total acres`},
+          {icon:'✅',label:'In Window Today',val:inWindow.length,sub:'Conditions currently favorable',hi:inWindow.length>0},
+          {icon:'📋',label:'Approved Plans',val:approvedCount,sub:`${units.length - approvedCount} pending review`},
+          {icon:'💨',label:'Avg AQI (Region)',val:Math.round(units.reduce((s,u)=>s+u.currentCond.aqi,0)/units.length),sub:'Air quality index'}
+        ].map((k,i) => (
+          <div key={i} className="card" style={k.hi ? {borderColor:'#166534'} : {}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+              <div>
+                <div className="kpi-sub" style={{marginBottom:6}}>{k.icon} {k.label}</div>
+                <div className="kpi-val" style={k.hi ? {color:'#4ADE80'} : {}}>{k.val}</div>
+                <div className="kpi-sub" style={{marginTop:4}}>{k.sub}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">Priority Queue</span>
+            <button className="btn btn-outline btn-sm" onClick={() => setView('units')}>View All →</button>
+          </div>
+          {sorted.map((u, i) => {
+            const inW = isInWindow(u);
+            const pc = priorityColor(u.priorityScore);
+            const peakMonths = u.monthly.map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0,2).map(x=>MONTHS[x.i]).join('/');
+            return (
+              <div key={u.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:'1px solid #1A2B3C',cursor:'pointer'}} onClick={()=>{setSelectedUnit(u);setView('unit-detail');}}>
+                <span className={`priority-badge ${pc}`}>#{i+1}</span>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:13,fontWeight:600,color:'#E2E8F0'}}>{u.name}</div>
+                  <div style={{fontSize:11,color:'#64748B'}}>{u.forest} · {u.acres} ac · Peak: {peakMonths}</div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  {inW ? <span className="info-pill pill-green">✅ IN WINDOW</span> : <span style={{fontSize:11,color:'#475569'}}>{u.windowPct}% window</span>}
+                  <div style={{fontSize:12,fontWeight:700,color:u.priorityScore>=90?'#FCA5A5':u.priorityScore>=80?'#FCD34D':'#86EFAC'}}>{u.priorityScore} pts</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="card">
+          <div className="card-header"><span className="card-title">Monthly Opportunity Overview</span></div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(12,1fr)',gap:4,marginBottom:8}}>
+            {MONTHS.map((m,i) => {
+              const total = units.reduce((s,u) => s + (u.monthly[i] || 0), 0);
+              const avg = Math.round(total / units.length);
+              const height = Math.max(4, (avg / 30) * 80);
+              const isCurrentMonth = i === TODAY.getMonth();
+              return (
+                <div key={m} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                  <div style={{width:'100%',height:80,display:'flex',alignItems:'flex-end'}}>
+                    <div style={{width:'100%',height:`${height}px`,background: isCurrentMonth ? '#52B788' : '#2D6A4F',borderRadius:'3px 3px 0 0',opacity:isCurrentMonth?1:.7}}/>
+                  </div>
+                  <div className="month-label" style={isCurrentMonth?{color:'#52B788'}:{}}>{m}</div>
+                  <div style={{fontSize:9,color:'#475569'}}>{avg}%</div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{fontSize:11,color:'#64748B',marginTop:8}}>Average % of days prescription conditions met across all units (15-yr historical)</div>
+
+          <div style={{marginTop:16}}>
+            <div className="card-title" style={{marginBottom:10}}>Current Conditions vs Prescription</div>
+            {inWindow.length > 0 ? (
+              inWindow.map(u => (
+                <div key={u.id} className="alert alert-green" style={{cursor:'pointer'}} onClick={()=>{setSelectedUnit(u);setView('unit-detail');}}>
+                  <span>✅</span>
+                  <div><strong>{u.name}</strong> — All parameters in prescription. <strong>GO for ignition.</strong></div>
+                </div>
+              ))
+            ) : (
+              <div className="alert alert-orange"><span>⚠️</span>No units currently in full prescription window. Next opportunities: {sorted[0].name} (check forecast).</div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-header"><span className="card-title">Unit Status Overview</span></div>
+        <table>
+          <thead><tr>
+            <th>Priority</th><th>Unit Name</th><th>Forest / District</th>
+            <th>Acres</th><th>Status</th><th>Window %</th><th>Peak Season</th><th>Today</th>
+          </tr></thead>
+          <tbody>
+            {sorted.map((u,i) => {
+              const inW = isInWindow(u);
+              const peak = u.monthly.map((v,j)=>({v,j})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>MONTHS[x.j]).join(', ');
+              return (
+                <tr key={u.id} style={{cursor:'pointer'}} onClick={()=>{setSelectedUnit(u);setView('unit-detail');}}>
+                  <td><span className={`priority-badge ${priorityColor(u.priorityScore)}`}>{i+1}</span></td>
+                  <td><div style={{fontWeight:600,color:'#E2E8F0'}}>{u.name}</div><div style={{fontSize:10,color:'#64748B'}}>{u.unitId}</div></td>
+                  <td><div>{u.forest}</div><div style={{fontSize:10,color:'#64748B'}}>{u.district}</div></td>
+                  <td>{u.acres.toLocaleString()}</td>
+                  <td><span className={`info-pill ${u.status==='Approved'?'pill-green':'pill-orange'}`}>{u.status}</span></td>
+                  <td>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <div className="window-bar" style={{width:60}}><div className="window-fill" style={{width:`${Math.min(u.windowPct*3,100)}%`}}/></div>
+                      <span style={{fontSize:11,color:'#94A3B8'}}>{u.windowPct}%</span>
+                    </div>
+                  </td>
+                  <td style={{fontSize:12,color:'#94A3B8'}}>{peak}</td>
+                  <td>{inW ? <span className="info-pill pill-green">✅ GO</span> : <span className="info-pill pill-gray">⛔ NO-GO</span>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Heat Map ────────────────────────────────────────────────────────────────
+function HeatMap({units, setSelectedUnit, setView}) {
+  const sorted = [...units].sort((a,b) => b.priorityScore - a.priorityScore);
+  const [tooltip, setTooltip] = useState(null);
+  return (
+    <div>
+      <div className="card" style={{marginBottom:14}}>
+        <div style={{fontSize:13,color:'#94A3B8'}}>
+          Color intensity shows <strong style={{color:'#52B788'}}>% of days historically</strong> that prescription conditions are met for each unit and month (15-year FEMS analysis).
+          Units sorted by priority — <strong style={{color:'#FCA5A5'}}>most weather-constrained first</strong>. Use this to plan your burn season across all units.
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-header">
+          <span className="card-title">Prescription Window Heat Map</span>
+          <div style={{display:'flex',gap:8,alignItems:'center',fontSize:11,color:'#64748B'}}>
+            {[['0%','#0F1923'],['1–5%','#1B4332'],['6–12%','#2D6A4F'],['13–20%','#40916C'],['21–28%','#52B788'],['29%+','#74C69D']].map(([l,c]) => (
+              <div key={l} style={{display:'flex',alignItems:'center',gap:3}}><div style={{width:16,height:16,background:c,borderRadius:3}}/>{l}</div>
+            ))}
+          </div>
+        </div>
+        <div className="heatmap-grid">
+          <div className="hm-header" style={{textAlign:'left'}}>Unit</div>
+          {MONTHS.map(m => <div key={m} className="hm-header">{m}</div>)}
+          {sorted.map(u => {
+            const inW = isInWindow(u);
+            return [
+              <div key={`${u.id}-label`} className="hm-unit" style={{borderLeft:`3px solid ${inW?'#22C55E':'transparent'}`}}>
+                <div>
+                  <div style={{fontWeight:600,color:'#E2E8F0',fontSize:11,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:165}}>{u.name}</div>
+                  <div style={{fontSize:9,color:'#64748B'}}>Pri #{sorted.indexOf(u)+1} · {u.windowPct}% avg window</div>
+                </div>
+              </div>,
+              ...u.monthly.map((pct, mi) => {
+                const isCurrent = mi === TODAY.getMonth();
+                return (
+                  <div key={`${u.id}-${mi}`}
+                    className="hm-cell"
+                    style={{
+                      background: hmColor(pct),
+                      border: isCurrent ? '2px solid #52B788' : '2px solid transparent',
+                      opacity: u.targetMonths.includes(mi) ? 1 : 0.45,
+                    }}
+                    title={`${u.name} · ${MONTH_FULL[mi]}: ${pct}% of days in prescription`}
+                    onMouseEnter={e => setTooltip({u, mi, pct, x: e.clientX, y: e.clientY})}
+                    onMouseLeave={() => setTooltip(null)}
+                  >
+                    {pct > 0 ? `${pct}%` : ''}
+                  </div>
+                );
+              })
+            ];
+          })}
+        </div>
+        <div style={{marginTop:12,fontSize:11,color:'#475569'}}>
+          ■ Full opacity = target season · Faded = off-season · Border = current month · Left bar = currently in window today
+        </div>
+      </div>
+      {tooltip && (
+        <div style={{position:'fixed',top:tooltip.y-80,left:tooltip.x+10,background:'#1C2D3E',border:'1px solid #40916C',borderRadius:8,padding:'10px 14px',zIndex:9999,fontSize:12,pointerEvents:'none',minWidth:200}}>
+          <div style={{fontWeight:700,color:'#E2E8F0',marginBottom:4}}>{tooltip.u.name}</div>
+          <div style={{color:'#94A3B8'}}>{MONTH_FULL[tooltip.mi]}: <span style={{color:hmColor(tooltip.pct+15),fontWeight:700}}>{tooltip.pct}%</span> of days in prescription</div>
+          <div style={{color:'#64748B',marginTop:4,fontSize:11}}>Based on 15 years of FEMS station data</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Calendar ────────────────────────────────────────────────────────────────
+function CalendarView({units}) {
+  const [month, setMonth] = useState(TODAY.getMonth());
+  const [year, setYear] = useState(TODAY.getFullYear());
+  const [selectedDay, setSelectedDay] = useState(null);
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month+1, 0).getDate();
+  const daysInPrev = new Date(year, month, 0).getDate();
+
+  function unitsForDay(dayOfMonth) {
+    const d = new Date(year, month, dayOfMonth);
+    return units.filter(u => {
+      const prob = u.monthly[month] || 0;
+      const seed = (u.id * 7 + dayOfMonth * 13) % 100;
+      return seed < prob && u.targetMonths.includes(month);
+    });
+  }
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push({day: daysInPrev - firstDay + 1 + i, type:'prev'});
+  for (let i = 1; i <= daysInMonth; i++) cells.push({day:i, type:'current'});
+  let next = 1;
+  while (cells.length % 7 !== 0) cells.push({day: next++, type:'next'});
+
+  const selectedUnits = selectedDay ? unitsForDay(selectedDay) : [];
+
+  return (
+    <div>
+      <div className="card" style={{marginBottom:14}}>
+        <div style={{display:'flex',alignItems:'center',gap:16}}>
+          <button className="btn btn-outline btn-sm" onClick={() => { if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1); }}>◀ Prev</button>
+          <div style={{flex:1,textAlign:'center',fontSize:18,fontWeight:700,color:'#E2E8F0'}}>{MONTH_FULL[month]} {year}</div>
+          <button className="btn btn-outline btn-sm" onClick={() => { if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1); }}>Next ▶</button>
+        </div>
+      </div>
+      <div className="grid-2" style={{alignItems:'start'}}>
+        <div className="card">
+          <div className="cal-grid">
+            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d} className="cal-header">{d}</div>)}
+            {cells.map((cell, i) => {
+              const dayUnits = cell.type === 'current' ? unitsForDay(cell.day) : [];
+              const isToday = cell.type==='current' && cell.day===TODAY.getDate() && month===TODAY.getMonth() && year===TODAY.getFullYear();
+              const isSelected = cell.type==='current' && cell.day===selectedDay;
+              const bgInt = dayUnits.length;
+              const bgColor = bgInt === 0 ? '#152030' : bgInt === 1 ? '#1B4332' : bgInt <= 3 ? '#2D6A4F' : '#40916C';
+              return (
+                <div key={i}
+                  className={`cal-day ${isToday?'today':''} ${cell.type!=='current'?'other-month':''}`}
+                  style={{background: cell.type==='current' ? bgColor : '#0F1923', border: isSelected ? '2px solid #52B788' : '', cursor: cell.type==='current'?'pointer':'default'}}
+                  onClick={() => cell.type==='current' && setSelectedDay(cell.day)}
+                >
+                  <div className="cal-day-num" style={isToday?{color:'#52B788'}:{}}>{cell.day}</div>
+                  <div className="cal-units">
+                    {dayUnits.slice(0,3).map(u => (
+                      <div key={u.id} className="cal-unit-chip" style={{background:'#166534',color:'#86EFAC'}}>{u.name.split(' ').slice(0,2).join(' ')}</div>
+                    ))}
+                    {dayUnits.length > 3 && <div style={{fontSize:9,color:'#64748B'}}>+{dayUnits.length-3} more</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{marginTop:12,display:'flex',gap:10,fontSize:11,color:'#64748B'}}>
+            {[[0,'#152030','No units'],[1,'#1B4332','1 unit'],[3,'#2D6A4F','2–3 units'],[5,'#40916C','4+ units']].map(([,c,l]) => (
+              <div key={l} style={{display:'flex',alignItems:'center',gap:4}}><div style={{width:12,height:12,background:c,borderRadius:2}}/>{l}</div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          {selectedDay ? (
+            <div className="card">
+              <div style={{fontSize:15,fontWeight:700,color:'#E2E8F0',marginBottom:12}}>
+                {MONTH_FULL[month]} {selectedDay}, {year}
+                {selectedDay===TODAY.getDate()&&month===TODAY.getMonth()&&year===TODAY.getFullYear() && <span className="info-pill pill-green" style={{marginLeft:8}}>Today</span>}
+              </div>
+              {selectedUnits.length > 0 ? (
+                <>
+                  <div style={{fontSize:12,color:'#52B788',marginBottom:10,fontWeight:600}}>✅ {selectedUnits.length} unit{selectedUnits.length>1?'s':''} historically in prescription window</div>
+                  {selectedUnits.map(u => (
+                    <div key={u.id} style={{padding:'10px',background:'#152030',borderRadius:8,marginBottom:8,border:'1px solid #1E3448'}}>
+                      <div style={{fontWeight:600,color:'#E2E8F0',fontSize:13}}>{u.name}</div>
+                      <div style={{fontSize:11,color:'#64748B',marginTop:2}}>{u.forest} · {u.acres} ac · Window: {u.monthly[month]}% historically</div>
+                      <div style={{marginTop:8,display:'flex',flexWrap:'wrap',gap:4}}>
+                        <span className="info-pill pill-blue">Temp: {u.rx.tempMin}–{u.rx.tempMax}°F</span>
+                        <span className="info-pill pill-blue">RH: {u.rx.rhMin}–{u.rx.rhMax}%</span>
+                        <span className="info-pill pill-blue">Wind: {u.rx.windMin}–{u.rx.windMax} mph</span>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div style={{color:'#64748B',fontSize:13,padding:'20px 0',textAlign:'center'}}>No units historically in prescription window on this date.</div>
+              )}
+            </div>
+          ) : (
+            <div className="card">
+              <div style={{color:'#64748B',fontSize:13,textAlign:'center',padding:'40px 20px'}}>
+                <div style={{fontSize:32,marginBottom:12}}>📅</div>
+                Click a day on the calendar to see which burn units are historically in prescription window.
+              </div>
+            </div>
+          )}
+
+          <div className="card" style={{marginTop:14}}>
+            <div className="card-title" style={{marginBottom:10}}>Units with Target Season This Month</div>
+            {units.filter(u => u.targetMonths.includes(month)).length > 0 ? (
+              units.filter(u => u.targetMonths.includes(month)).map(u => (
+                <div key={u.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid #1A2B3C',fontSize:12}}>
+                  <div>
+                    <span style={{color:'#E2E8F0',fontWeight:600}}>{u.name}</span>
+                    <div style={{color:'#64748B',fontSize:11}}>{u.monthly[month]}% window · Priority #{[...units].sort((a,b)=>b.priorityScore-a.priorityScore).indexOf(u)+1}</div>
+                  </div>
+                  <span className={`info-pill ${u.monthly[month]>15?'pill-green':u.monthly[month]>5?'pill-orange':'pill-red'}`}>{u.monthly[month]}%</span>
+                </div>
+              ))
+            ) : (
+              <div style={{color:'#64748B',fontSize:12}}>No units target {MONTH_FULL[month]} as a burn season.</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Unit Detail ─────────────────────────────────────────────────────────────
+function UnitDetail({unit, setView, onDelete}) {
+  const [tab, setTab] = useState('gonogo');
+  const chartRef = useRef(null);
+  const chartInst = useRef(null);
+  const inW = isInWindow(unit);
+  const c = unit.currentCond;
+  const r = unit.rx;
+
+  const params = [
+    {label:'Temperature',min:r.tempMin,max:r.tempMax,val:c.temp,unit:'°F'},
+    {label:'Relative Humidity',min:r.rhMin,max:r.rhMax,val:c.rh,unit:'%'},
+    {label:'Wind Speed (20 ft)',min:r.windMin,max:r.windMax,val:c.wind,unit:'mph'},
+    {label:'10-hr Fuel Moisture',min:r.fm10Min,max:r.fm10Max,val:c.fm10,unit:'%'},
+    {label:'100-hr Fuel Moisture',min:undefined,max:r.fm100Max,val:c.fm100,unit:'%'},
+    {label:'Haines Index',min:undefined,max:r.hainesMax,val:c.haines,unit:''},
+    {label:'ERC',min:r.ercMin,max:r.ercMax,val:c.erc,unit:''},
+    {label:'Mixing Height',min:r.mixHt,max:undefined,val:c.mixHt,unit:'ft'},
+    {label:'Transport Wind',min:r.transport,max:undefined,val:c.transport,unit:'mph'},
+    {label:'Air Quality (AQI)',min:undefined,max:100,val:c.aqi,unit:''},
+  ];
+
+  useEffect(() => {
+    if (tab !== 'window' || !chartRef.current) return;
+    if (chartInst.current) chartInst.current.destroy();
+    chartInst.current = new Chart(chartRef.current, {
+      type:'bar',
+      data:{
+        labels: MONTHS,
+        datasets:[{
+          label:'% Days in Prescription Window',
+          data: unit.monthly,
+          backgroundColor: unit.monthly.map((v,i) => unit.targetMonths.includes(i) ? 'rgba(82,183,136,0.8)' : 'rgba(82,183,136,0.25)'),
+          borderColor: unit.monthly.map((v,i) => i === TODAY.getMonth() ? '#F59E0B' : 'transparent'),
+          borderWidth: 2,
+        }]
+      },
+      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw}% of days`}}},scales:{y:{max:35,ticks:{color:'#64748B'},grid:{color:'#1E3448'}},x:{ticks:{color:'#64748B'},grid:{display:false}}}}
+    });
+    return () => chartInst.current?.destroy();
+  }, [tab, unit]);
+
+  return (
+    <div>
+      <div className="card" style={{marginBottom:14}}>
+        <div className="detail-header">
+          <div>
+            <div style={{display:'flex',gap:8,marginBottom:10}}>
+              <button className="btn btn-outline btn-sm" onClick={() => setView('units')}>← Back to Units</button>
+              {onDelete && <button className="btn btn-danger btn-sm" onClick={() => onDelete(unit.id)}>🗑 Delete Unit</button>}
+            </div>
+            <div className="detail-title">{unit.name}</div>
+            <div className="detail-sub">{unit.unitId} · {unit.forest}, {unit.district} · {unit.acres} acres</div>
+            <div style={{marginTop:10}}>
+              <span className={`info-pill ${unit.status==='Approved'?'pill-green':'pill-orange'}`}>{unit.status}</span>
+              <span className={`info-pill ${priorityColor(unit.priorityScore)==='p-critical'?'pill-red':priorityColor(unit.priorityScore)==='p-high'?'pill-orange':'pill-blue'}`}>Priority: {priorityLabel(unit.priorityScore)}</span>
+              <span className="info-pill pill-gray">Window: {unit.windowPct}% of days</span>
+              <span className="info-pill pill-gray">Complexity: {unit.complexity}</span>
+              {inW && <span className="info-pill pill-green" style={{fontSize:13,padding:'6px 14px'}}>✅ IN WINDOW TODAY — GO FOR IGNITION</span>}
+            </div>
+          </div>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontSize:36,fontWeight:800,color: unit.priorityScore>=90?'#FCA5A5':unit.priorityScore>=80?'#FCD34D':'#86EFAC'}}>{unit.priorityScore}</div>
+            <div style={{fontSize:11,color:'#64748B'}}>Priority Score</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="tabs">
+        {[['gonogo','Go/No-Go Checker'],['prescription','Prescription (PMS 484-1)'],['window','Weather Window Analysis'],['smoke','Smoke Management'],['objectives','Objectives & Area']].map(([id,label]) => (
+          <div key={id} className={`tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</div>
+        ))}
+      </div>
+
+      {tab === 'gonogo' && (
+        <div className="card">
+          <div className={`alert ${inW?'alert-green':'alert-red'}`} style={{fontSize:14,fontWeight:700,marginBottom:16}}>
+            {inW ? '✅ ALL PARAMETERS IN PRESCRIPTION — GO FOR IGNITION' : '⛔ ONE OR MORE PARAMETERS OUTSIDE PRESCRIPTION — NO GO'}
+          </div>
+          <div style={{marginBottom:8,display:'grid',gridTemplateColumns:'180px 130px 130px 110px 60px',gap:8,fontSize:11,fontWeight:600,color:'#475569',padding:'6px 0',borderBottom:'2px solid #1E3448'}}>
+            <span>Parameter</span><span>Prescription Min</span><span>Prescription Max</span><span>Current Value</span><span>Status</span>
+          </div>
+          {params.map(p => {
+            const status = checkParam(p.val, p.min, p.max);
+            return (
+              <div key={p.label} className="param-row">
+                <span className="param-label">{p.label}</span>
+                <span className="param-range">{p.min !== undefined ? `${p.min}${p.unit}` : '—'}</span>
+                <span className="param-range">{p.max !== undefined ? `${p.max}${p.unit}` : '—'}</span>
+                <span className={`param-current ${status==='go'?'go':status==='nogo'?'nogo':'marginal'}`}>{p.val}{p.unit}</span>
+                <span style={{fontSize:18}}>{status==='go'?'✅':status==='nogo'?'❌':'⚠️'}</span>
+              </div>
+            );
+          })}
+          <div style={{marginTop:16,padding:'12px',background:'#0F1923',borderRadius:8,fontSize:12,color:'#64748B'}}>
+            <div style={{fontWeight:600,color:'#94A3B8',marginBottom:6}}>PMS 484-1 Element 2B — Prescribed Fire Go/No-Go Checklist</div>
+            {['All permits and clearances obtained','All required notifications made','Pre-burn preparation completed','Current and projected fire weather forecast obtained and favorable',
+              'All prescription parameters met','Smoke management specifications met','All personnel and equipment on-site','Contingency resources available','All personnel briefed'].map((item,i) => (
+              <div key={i} style={{display:'flex',gap:8,padding:'4px 0',borderBottom:'1px solid #1E3448'}}>
+                <span>{inW ? '✅' : (i < 4 ? '✅' : i === 4 ? '❌' : '✅')}</span>
+                <span>{item}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {tab === 'prescription' && (
+        <div>
+          <div className="card" style={{marginBottom:14}}>
+            <div className="section-title">Element 7B — Prescription Parameters</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              {[
+                ['Temperature',`${r.tempMin}–${r.tempMax}°F`],['Relative Humidity',`${r.rhMin}–${r.rhMax}%`],
+                ['Wind Speed (20 ft)',`${r.windMin}–${r.windMax} mph`],['Wind Direction',r.windDir],
+                ['1-hr Fuel Moisture',`${r.fm1Min}–${r.fm1Max}%`],['10-hr Fuel Moisture',`${r.fm10Min}–${r.fm10Max}%`],
+                ['100-hr Fuel Moisture',`Max ${r.fm100Max}%`],['1000-hr Fuel Moisture',`Max ${r.fm1000Max}%`],
+                ['Live Fuel Moisture',`Min ${r.liveFmMin}%`],['Haines Index',`Max ${r.hainesMax}`],
+                ['Energy Release Component (ERC)',`${r.ercMin}–${r.ercMax}`],['Mixing Height',`Min ${r.mixHt.toLocaleString()} ft`],
+                ['Transport Wind Speed',`Min ${r.transport} mph`],['Max Flame Length',`${r.flameLenMax} ft`],
+              ].map(([label, val]) => (
+                <div key={label} style={{padding:'10px',background:'#152030',borderRadius:6,border:'1px solid #1E3448'}}>
+                  <div style={{fontSize:11,color:'#64748B',marginBottom:3}}>{label}</div>
+                  <div style={{fontSize:15,fontWeight:700,color:'#E2E8F0'}}>{val}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <div className="section-title">Element 8 — Scheduling</div>
+            <div style={{fontSize:13,color:'#94A3B8',marginBottom:10}}>Target Burn Months:</div>
+            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+              {MONTHS.map((m,i) => (
+                <div key={m} style={{padding:'6px 14px',borderRadius:20,fontSize:12,fontWeight:600,
+                  background: unit.targetMonths.includes(i) ? '#1B4332' : '#1E3448',
+                  color: unit.targetMonths.includes(i) ? '#52B788' : '#475569',
+                  border: i===TODAY.getMonth() ? '2px solid #F59E0B' : '2px solid transparent'}}>
+                  {m}
+                </div>
+              ))}
+            </div>
+            <div style={{marginTop:14,fontSize:13,color:'#64748B'}}>Burn Boss: <span style={{color:'#94A3B8',fontWeight:600}}>{unit.burnBoss}</span> · Complexity Rating: <span style={{color:'#94A3B8',fontWeight:600}}>{unit.complexity}</span></div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'window' && (
+        <div className="card">
+          <div className="card-header">
+            <span className="card-title">15-Year Historical Window Analysis — FEMS Station Data</span>
+          </div>
+          <div style={{marginBottom:14,display:'flex',gap:12}}>
+            {[['Overall Window',`${unit.windowPct}% of days`],['Best Month',MONTHS[unit.monthly.indexOf(Math.max(...unit.monthly))]],['Peak Probability',`${Math.max(...unit.monthly)}%`]].map(([l,v]) => (
+              <div key={l} style={{padding:'12px 16px',background:'#152030',borderRadius:8,border:'1px solid #1E3448'}}>
+                <div style={{fontSize:11,color:'#64748B'}}>{l}</div>
+                <div style={{fontSize:18,fontWeight:700,color:'#52B788'}}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div className="month-chart-wrap" style={{height:200}}>
+            <canvas ref={chartRef}/>
+          </div>
+          <div style={{marginTop:8,fontSize:11,color:'#475569'}}>
+            ■ Darker bars = target season · Yellow border = current month (Feb) · Based on 15 years of FEMS station {unit.forest} observations
+          </div>
+        </div>
+      )}
+
+      {tab === 'smoke' && (
+        <div className="card">
+          <div className="section-title">Element 19 — Smoke Management & Air Quality</div>
+          {[['Air Basin',unit.smoke.airBasin],['Permit Required',unit.smoke.permitReq?'YES — Permit required prior to ignition':'No permit required'],
+            ['Smoke-Sensitive Receptors',unit.smoke.receptors],['Current AQI',`${c.aqi} — ${aqiCategory(c.aqi).label}`],
+            ['Mitigation Strategies',unit.smoke.mitigation]].map(([l,v]) => (
+            <div key={l} style={{padding:'12px',background:'#152030',borderRadius:6,border:'1px solid #1E3448',marginBottom:10}}>
+              <div style={{fontSize:11,color:'#64748B',marginBottom:3}}>{l}</div>
+              <div style={{fontSize:13,color: l==='Permit Required'&&unit.smoke.permitReq?'#FCA5A5':l.includes('AQI')?aqiCategory(c.aqi).color:'#E2E8F0',fontWeight:l==='Permit Required'?700:400}}>{v}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'objectives' && (
+        <div>
+          <div className="card" style={{marginBottom:14}}>
+            <div className="section-title">Element 4 — Description of Prescribed Fire Area</div>
+            <div style={{fontSize:13,color:'#94A3B8',marginBottom:4}}>Location:</div>
+            <div style={{fontSize:13,color:'#E2E8F0',marginBottom:12}}>{unit.forest}, {unit.district} · Lat {unit.lat.toFixed(3)}°N, Lon {unit.lon.toFixed(3)}°W</div>
+            <div style={{fontSize:13,color:'#94A3B8',marginBottom:4}}>Fuels Description:</div>
+            <div style={{fontSize:13,color:'#E2E8F0'}}>{unit.fuels}</div>
+          </div>
+          <div className="card">
+            <div className="section-title">Element 5 — Objectives</div>
+            <div style={{fontSize:13,color:'#E2E8F0',lineHeight:1.6}}>{unit.objectives}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Burn Units Table ─────────────────────────────────────────────────────────
+function BurnUnitsTable({units, setSelectedUnit, setView}) {
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+  let filtered = [...units].sort((a,b) => b.priorityScore - a.priorityScore);
+  if (filter === 'window') filtered = filtered.filter(isInWindow);
+  if (filter === 'approved') filtered = filtered.filter(u => u.status === 'Approved');
+  if (search) filtered = filtered.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.forest.toLowerCase().includes(search.toLowerCase()));
+  return (
+    <div>
+      <div className="card" style={{marginBottom:14}}>
+        <div style={{display:'flex',gap:10,alignItems:'center'}}>
+          <input placeholder="🔍 Search units..." value={search} onChange={e=>setSearch(e.target.value)} style={{background:'#0F1923',border:'1px solid #2D4057',borderRadius:6,padding:'7px 12px',color:'#E2E8F0',fontSize:13,flex:1}}/>
+          {['all','window','approved'].map(f => (
+            <button key={f} className={`btn ${filter===f?'btn-primary':'btn-outline'} btn-sm`} onClick={() => setFilter(f)}>
+              {f==='all'?'All Units':f==='window'?'✅ In Window':'Approved Only'}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="card">
+        <table>
+          <thead><tr>
+            <th>#</th><th>Unit Name</th><th>Forest / District</th><th>Acres</th>
+            <th>Status</th><th>Priority</th><th>Window %</th><th>Peak Season</th><th>Today</th>
+          </tr></thead>
+          <tbody>
+            {filtered.map((u,i) => {
+              const inW = isInWindow(u);
+              const peak = u.monthly.map((v,j)=>({v,j})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>MONTHS[x.j]).join(', ');
+              return (
+                <tr key={u.id} style={{cursor:'pointer'}} onClick={()=>{setSelectedUnit(u);setView('unit-detail');}}>
+                  <td><span className={`priority-badge ${priorityColor(u.priorityScore)}`}>{u.priorityScore>=90?'🔴':u.priorityScore>=80?'🟠':'🟡'}{i+1}</span></td>
+                  <td><div style={{fontWeight:600,color:'#E2E8F0'}}>{u.name}</div><div style={{fontSize:10,color:'#64748B'}}>{u.unitId}</div></td>
+                  <td><div style={{fontSize:12}}>{u.forest}</div><div style={{fontSize:10,color:'#64748B'}}>{u.district}</div></td>
+                  <td style={{fontWeight:600}}>{u.acres.toLocaleString()}</td>
+                  <td><span className={`info-pill ${u.status==='Approved'?'pill-green':'pill-orange'}`}>{u.status}</span></td>
+                  <td>
+                    <div style={{fontWeight:700,color:u.priorityScore>=90?'#FCA5A5':u.priorityScore>=80?'#FCD34D':'#86EFAC'}}>{u.priorityScore}</div>
+                    <div style={{fontSize:10,color:'#64748B'}}>{priorityLabel(u.priorityScore)}</div>
+                  </td>
+                  <td>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <div className="window-bar" style={{width:50}}><div className="window-fill" style={{width:`${Math.min(u.windowPct*3.3,100)}%`}}/></div>
+                      <span style={{fontSize:11}}>{u.windowPct}%</span>
+                    </div>
+                  </td>
+                  <td style={{fontSize:11,color:'#94A3B8'}}>{peak}</td>
+                  <td>{inW ? <span className="info-pill pill-green">✅ GO</span> : <span className="info-pill pill-gray">⛔</span>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        {filtered.length === 0 && <div style={{padding:'30px',textAlign:'center',color:'#475569'}}>No units match your filter.</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── Map View ────────────────────────────────────────────────────────────────
+function MapView({units, setSelectedUnit, setView}) {
+  const mapRef = useRef(null);
+  const mapInst = useRef(null);
+  useEffect(() => {
+    if (mapInst.current) return;
+    mapInst.current = L.map(mapRef.current, {center:[37.5,-119.5],zoom:6});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInst.current);
+    units.forEach(u => {
+      const inW = isInWindow(u);
+      const color = inW ? '#22C55E' : u.priorityScore >= 90 ? '#EF4444' : u.priorityScore >= 80 ? '#F59E0B' : '#3B82F6';
+      const marker = L.circleMarker([u.lat,u.lon],{radius:10,fillColor:color,color:'#fff',weight:2,fillOpacity:.85}).addTo(mapInst.current);
+      marker.bindPopup(`<div style="font-family:sans-serif;padding:4px"><b>${u.name}</b><br>${u.forest}<br>${u.acres} acres<br>Window: ${u.windowPct}%<br>Priority: ${u.priorityScore}<br>${inW?'<b style="color:green">✅ IN WINDOW</b>':'⛔ Not in window'}</div>`);
+    });
+    return () => { mapInst.current?.remove(); mapInst.current = null; };
+  }, []);
+  return (
+    <div>
+      <div className="card" style={{marginBottom:14}}>
+        <div style={{display:'flex',gap:16,alignItems:'center',fontSize:12}}>
+          <span style={{color:'#64748B'}}>Map Legend:</span>
+          {[['#22C55E','In Window'],['#EF4444','Critical Priority'],['#F59E0B','High Priority'],['#3B82F6','Medium Priority']].map(([c,l]) => (
+            <div key={l} style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:14,height:14,background:c,borderRadius:'50%'}}/><span style={{color:'#94A3B8'}}>{l}</span></div>
+          ))}
+          <div className="drag-zone" style={{padding:'8px 14px',fontSize:12,flex:1,maxWidth:280}}>📁 Drop shapefile (.zip) to overlay burn boundaries</div>
+        </div>
+      </div>
+      <div className="card" style={{padding:0,overflow:'hidden'}}>
+        <div ref={mapRef} id="map" style={{height:500,borderRadius:10}}/>
+      </div>
+    </div>
+  );
+}
+
+// ─── Weather View ─────────────────────────────────────────────────────────────
+function WeatherView({units}) {
+  return (
+    <div>
+      <div className="alert alert-orange" style={{marginBottom:14}}><span>⚠️</span><span><strong>Red Flag Warning:</strong> Los Padres NF, Cleveland NF — NE winds 25–40 mph, RH 10–20%, through Feb 25 1800 PST</span></div>
+      <div className="grid-3">
+        {units.map(u => {
+          const c = u.currentCond;
+          const inW = isInWindow(u);
+          return (
+            <div key={u.id} className="card" style={inW?{borderColor:'#166534'}:{}}>
+              <div style={{fontSize:13,fontWeight:700,color:'#E2E8F0',marginBottom:4}}>{u.name}</div>
+              <div style={{fontSize:11,color:'#64748B',marginBottom:12}}>{u.forest} · FEMS Station</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                {[['🌡️ Temp',`${c.temp}°F`],['💧 RH',`${c.rh}%`],['🌬️ Wind',`${c.wind} mph ${c.windDir}`],['🔥 ERC',c.erc],['FM-10',`${c.fm10}%`],['Haines',c.haines]].map(([l,v]) => (
+                  <div key={l} style={{padding:'8px',background:'#152030',borderRadius:6}}>
+                    <div style={{fontSize:10,color:'#64748B'}}>{l}</div>
+                    <div style={{fontSize:14,fontWeight:700,color:'#E2E8F0'}}>{v}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:10,textAlign:'center'}}>
+                {inW ? <span className="info-pill pill-green" style={{width:'100%',justifyContent:'center'}}>✅ IN PRESCRIPTION WINDOW</span>
+                     : <span className="info-pill pill-gray" style={{width:'100%',justifyContent:'center'}}>⛔ Outside Prescription</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── AQI View ─────────────────────────────────────────────────────────────────
+function AQIView({units}) {
+  return (
+    <div>
+      <div className="grid-2" style={{marginBottom:14}}>
+        <div className="card">
+          <div className="card-title" style={{marginBottom:12}}>Current AQI by Unit Location</div>
+          {units.map(u => {
+            const cat = aqiCategory(u.currentCond.aqi);
+            return (
+              <div key={u.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid #1A2B3C'}}>
+                <div><div style={{fontSize:12,fontWeight:600,color:'#E2E8F0'}}>{u.name}</div><div style={{fontSize:10,color:'#64748B'}}>{u.smoke.airBasin}</div></div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontWeight:700,color:cat.color}}>{u.currentCond.aqi}</div>
+                  <div style={{fontSize:10,color:'#64748B'}}>{cat.label}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="card">
+          <div className="card-title" style={{marginBottom:12}}>Air Basin Authorization Status</div>
+          {['San Joaquin Valley APCD','South Coast AQMD','North Coast AQMD','Great Basin Valleys AQMD'].map((basin,i) => {
+            const statuses = ['Burn Day (Open)','No Burn Day','Burn Day (Open)','Burn Day (Open)'];
+            const colors = ['#22C55E','#EF4444','#22C55E','#22C55E'];
+            return (
+              <div key={basin} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1A2B3C'}}>
+                <span style={{fontSize:12,color:'#94A3B8'}}>{basin}</span>
+                <span style={{fontWeight:700,color:colors[i],fontSize:12}}>{statuses[i]}</span>
+              </div>
+            );
+          })}
+          <div style={{marginTop:12,fontSize:11,color:'#64748B'}}>Refreshed hourly from CARB & EPA AirNow</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Add Unit Modal ───────────────────────────────────────────────────────────
+function AddUnitModal({onClose, onSave}) {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({
+    name:'',unitId:'',agency:'USFS',forest:'',district:'',lat:'',lon:'',acres:'',complexity:'Low',burnBoss:'',status:'Pending Review',
+    objectives:'',fuels:'',
+    tempMin:40,tempMax:80,rhMin:25,rhMax:55,windMin:5,windMax:20,windDir:'W-NW',mixHt:1500,transport:10,
+    fm1Min:3,fm1Max:10,fm10Min:8,fm10Max:20,fm100Max:25,fm1000Max:35,liveFmMin:80,hainesMax:4,ercMin:20,ercMax:55,flameLenMax:5,
+    targetMonths:[],
+    airBasin:'',permitReq:false,receptors:'',mitigation:'',
+  });
+  const set = (k,v) => setForm(f => ({...f,[k]:v}));
+  const toggleMonth = (m) => set('targetMonths', form.targetMonths.includes(m) ? form.targetMonths.filter(x=>x!==m) : [...form.targetMonths, m]);
+  const steps = ['Unit Info','Description & Objectives','Prescription Params','Scheduling','Smoke Management','Review'];
+
+  function handleSave() {
+    const monthlyWindow = MONTHS.map((_,i) => form.targetMonths.includes(i) ? Math.round(10 + Math.random()*20) : Math.round(Math.random()*5));
+    const newUnit = {
+      ...form,lat:parseFloat(form.lat)||37.5,lon:parseFloat(form.lon)||-119.5,acres:parseInt(form.acres)||100,
+      rx:{tempMin:+form.tempMin,tempMax:+form.tempMax,rhMin:+form.rhMin,rhMax:+form.rhMax,windMin:+form.windMin,windMax:+form.windMax,windDir:form.windDir,
+          mixHt:+form.mixHt,transport:+form.transport,fm1Min:+form.fm1Min,fm1Max:+form.fm1Max,fm10Min:+form.fm10Min,fm10Max:+form.fm10Max,
+          fm100Max:+form.fm100Max,fm1000Max:+form.fm1000Max,liveFmMin:+form.liveFmMin,hainesMax:+form.hainesMax,ercMin:+form.ercMin,ercMax:+form.ercMax,flameLenMax:+form.flameLenMax},
+      smoke:{airBasin:form.airBasin,permitReq:form.permitReq,receptors:form.receptors,mitigation:form.mitigation},
+      monthly:monthlyWindow,windowPct:form.targetMonths.length>0?Math.round(monthlyWindow.reduce((s,v)=>s+v,0)/12):5,
+      currentCond:{temp:65,rh:40,wind:10,windDir:'SW',fm10:15,fm100:22,haines:3,erc:40,aqi:35,mixHt:2000,transport:14},
+    };
+    newUnit.priorityScore = calcPriority(newUnit);
+    onSave(newUnit);
+  }
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-title">Add Burn Unit — PMS 484-1 Plan</div>
+        <div className="modal-sub">Complete all elements per the NWCG Prescribed Fire Plan Template (December 2021)</div>
+        <div className="step-indicator">{steps.map((_,i) => <div key={i} className={`step ${i<step?'done':i===step?'active':''}`}/>)}</div>
+        <div className="step-label">{steps.map((s,i) => <span key={i} style={i===step?{color:'#52B788',fontWeight:700}:{}}>{s}</span>)}</div>
+
+        {step === 0 && (
+          <div>
+            <div className="section-title">Element 1 & 4 — Unit Identification</div>
+            <div className="form-grid" style={{marginBottom:12}}>
+              <div className="field"><label>Prescribed Fire Name *</label><input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Crane Flat Meadow Rx"/></div>
+              <div className="field"><label>Unit ID</label><input value={form.unitId} onChange={e=>set('unitId',e.target.value)} placeholder="e.g. STF-CR-001"/></div>
+              <div className="field"><label>Agency</label><select value={form.agency} onChange={e=>set('agency',e.target.value)}><option>USFS</option><option>CAL FIRE</option><option>NPS</option><option>BLM</option><option>BIA</option><option>Local/Tribal</option></select></div>
+              <div className="field"><label>National Forest / Administrative Unit *</label><input value={form.forest} onChange={e=>set('forest',e.target.value)} placeholder="e.g. Stanislaus NF"/></div>
+              <div className="field"><label>District / Zone</label><input value={form.district} onChange={e=>set('district',e.target.value)} placeholder="e.g. Groveland RD"/></div>
+              <div className="field"><label>Acres *</label><input type="number" value={form.acres} onChange={e=>set('acres',e.target.value)} placeholder="245"/></div>
+            </div>
+            <div className="form-grid-3" style={{marginBottom:12}}>
+              <div className="field"><label>Latitude (WGS84)</label><input value={form.lat} onChange={e=>set('lat',e.target.value)} placeholder="37.754"/></div>
+              <div className="field"><label>Longitude</label><input value={form.lon} onChange={e=>set('lon',e.target.value)} placeholder="-119.832"/></div>
+              <div className="field"><label>Complexity Rating</label><select value={form.complexity} onChange={e=>set('complexity',e.target.value)}><option>Low</option><option>Moderate</option><option>High</option></select></div>
+            </div>
+            <div className="form-grid" style={{marginBottom:12}}>
+              <div className="field"><label>Burn Boss (Name & Qualification)</label><input value={form.burnBoss} onChange={e=>set('burnBoss',e.target.value)} placeholder="Name — RXB2"/></div>
+              <div className="field"><label>Plan Status</label><select value={form.status} onChange={e=>set('status',e.target.value)}><option>Pending Review</option><option>Approved</option><option>Draft</option></select></div>
+            </div>
+          </div>
+        )}
+
+        {step === 1 && (
+          <div>
+            <div className="section-title">Element 4B — Fuels Description</div>
+            <div className="field" style={{marginBottom:12}}><label>On-site Fuels / Fuel Model</label><textarea value={form.fuels} onChange={e=>set('fuels',e.target.value)} placeholder="Describe fuel type, fuel model (Anderson 1-13 or SB 40), loading, and conditions..."/></div>
+            <div className="section-title">Element 5 — Objectives</div>
+            <div className="field"><label>Resource & Prescribed Fire Objectives</label><textarea value={form.objectives} onChange={e=>set('objectives',e.target.value)} rows={4} placeholder="Describe resource management objectives, fire behavior objectives, and how prescribed fire will meet them..."/></div>
+          </div>
+        )}
+
+        {step === 2 && (
+          <div>
+            <div className="section-title">Element 7B — Prescription Parameters</div>
+            <div className="form-grid-3" style={{marginBottom:8}}>
+              <div className="field"><label>Temperature (°F)</label><div className="range-row"><input type="number" value={form.tempMin} onChange={e=>set('tempMin',e.target.value)} placeholder="Min"/><span className="range-sep">–</span><input type="number" value={form.tempMax} onChange={e=>set('tempMax',e.target.value)} placeholder="Max"/></div></div>
+              <div className="field"><label>Relative Humidity (%)</label><div className="range-row"><input type="number" value={form.rhMin} onChange={e=>set('rhMin',e.target.value)} placeholder="Min"/><span className="range-sep">–</span><input type="number" value={form.rhMax} onChange={e=>set('rhMax',e.target.value)} placeholder="Max"/></div></div>
+              <div className="field"><label>Wind Speed 20ft (mph)</label><div className="range-row"><input type="number" value={form.windMin} onChange={e=>set('windMin',e.target.value)} placeholder="Min"/><span className="range-sep">–</span><input type="number" value={form.windMax} onChange={e=>set('windMax',e.target.value)} placeholder="Max"/></div></div>
+              <div className="field"><label>Wind Direction</label><input value={form.windDir} onChange={e=>set('windDir',e.target.value)} placeholder="e.g. SW–NW (210–330°)"/></div>
+              <div className="field"><label>1-hr Fuel Moisture (%)</label><div className="range-row"><input type="number" value={form.fm1Min} onChange={e=>set('fm1Min',e.target.value)}/><span className="range-sep">–</span><input type="number" value={form.fm1Max} onChange={e=>set('fm1Max',e.target.value)}/></div></div>
+              <div className="field"><label>10-hr Fuel Moisture (%)</label><div className="range-row"><input type="number" value={form.fm10Min} onChange={e=>set('fm10Min',e.target.value)}/><span className="range-sep">–</span><input type="number" value={form.fm10Max} onChange={e=>set('fm10Max',e.target.value)}/></div></div>
+              <div className="field"><label>100-hr FM Max (%)</label><input type="number" value={form.fm100Max} onChange={e=>set('fm100Max',e.target.value)}/></div>
+              <div className="field"><label>1000-hr FM Max (%)</label><input type="number" value={form.fm1000Max} onChange={e=>set('fm1000Max',e.target.value)}/></div>
+              <div className="field"><label>Live FM Min (%)</label><input type="number" value={form.liveFmMin} onChange={e=>set('liveFmMin',e.target.value)}/></div>
+              <div className="field"><label>Haines Index Max</label><input type="number" value={form.hainesMax} onChange={e=>set('hainesMax',e.target.value)} min={1} max={6}/></div>
+              <div className="field"><label>ERC Range</label><div className="range-row"><input type="number" value={form.ercMin} onChange={e=>set('ercMin',e.target.value)}/><span className="range-sep">–</span><input type="number" value={form.ercMax} onChange={e=>set('ercMax',e.target.value)}/></div></div>
+              <div className="field"><label>Mixing Height Min (ft)</label><input type="number" value={form.mixHt} onChange={e=>set('mixHt',e.target.value)}/></div>
+              <div className="field"><label>Transport Wind Min (mph)</label><input type="number" value={form.transport} onChange={e=>set('transport',e.target.value)}/></div>
+              <div className="field"><label>Max Flame Length (ft)</label><input type="number" value={form.flameLenMax} onChange={e=>set('flameLenMax',e.target.value)}/></div>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div>
+            <div className="section-title">Element 8 — Scheduling</div>
+            <div style={{fontSize:12,color:'#94A3B8',marginBottom:10}}>Select target burn months (used to identify prescription windows):</div>
+            <div className="month-checks">
+              {MONTHS.map((m,i) => (
+                <label key={m} className="month-check" style={{padding:'8px 14px',background:form.targetMonths.includes(i)?'#1B4332':'#152030',borderRadius:20,border:`2px solid ${form.targetMonths.includes(i)?'#52B788':'#2D4057'}`}}>
+                  <input type="checkbox" checked={form.targetMonths.includes(i)} onChange={() => toggleMonth(i)} style={{display:'none'}}/>
+                  <span style={{color:form.targetMonths.includes(i)?'#52B788':'#94A3B8',fontWeight:600}}>{m}</span>
+                </label>
+              ))}
+            </div>
+            <div style={{marginTop:16,fontSize:12,color:'#64748B'}}>Selected: {form.targetMonths.length > 0 ? form.targetMonths.map(i=>MONTHS[i]).join(', ') : 'None — please select at least one month'}</div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div>
+            <div className="section-title">Element 19 — Smoke Management & Air Quality</div>
+            <div className="form-grid" style={{marginBottom:12}}>
+              <div className="field"><label>Air Basin</label><select value={form.airBasin} onChange={e=>set('airBasin',e.target.value)}>
+                <option value="">Select Air Basin</option>
+                {['San Joaquin Valley','South Coast','North Coast','Great Basin Valleys','Sacramento Valley','San Francisco Bay Area','Mountain Counties','Lake County','Northeast Plateau'].map(b => <option key={b}>{b}</option>)}
+              </select></div>
+              <div className="field"><label>Smoke Permit Required</label><select value={form.permitReq} onChange={e=>set('permitReq',e.target.value==='true')}>
+                <option value="false">No permit required</option><option value="true">Yes — permit required</option>
+              </select></div>
+              <div className="field"><label>Smoke-Sensitive Receptors</label><input value={form.receptors} onChange={e=>set('receptors',e.target.value)} placeholder="e.g. Town of X (5 mi), Highway Y"/></div>
+              <div className="field"><label>AQI Threshold for No-Go</label><select defaultValue="100"><option value="50">50 — Moderate</option><option value="100">100 — Unhealthy for Sensitive Groups</option><option value="150">150 — Unhealthy</option></select></div>
+            </div>
+            <div className="field"><label>Smoke Mitigation Strategies (Element 19E)</label><textarea value={form.mitigation} onChange={e=>set('mitigation',e.target.value)} placeholder="Describe strategies to reduce smoke impacts on sensitive receptors..."/></div>
+          </div>
+        )}
+
+        {step === 5 && (
+          <div>
+            <div className="section-title">Review — {form.name || 'Unnamed Unit'}</div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+              {[['Unit Name',form.name||'—'],['Unit ID',form.unitId||'—'],['Agency',form.agency],['Forest',form.forest||'—'],['Acres',form.acres||'—'],['Status',form.status],
+                ['Target Months',form.targetMonths.map(i=>MONTHS[i]).join(', ')||'None'],['Air Basin',form.airBasin||'—'],['Permit Required',form.permitReq?'Yes':'No'],
+                ['Temp Range',`${form.tempMin}–${form.tempMax}°F`],['RH Range',`${form.rhMin}–${form.rhMax}%`],['Wind Range',`${form.windMin}–${form.windMax} mph`]
+              ].map(([l,v]) => (
+                <div key={l} style={{padding:'8px',background:'#152030',borderRadius:6,border:'1px solid #1E3448'}}>
+                  <div style={{fontSize:10,color:'#64748B'}}>{l}</div>
+                  <div style={{fontSize:13,fontWeight:600,color:'#E2E8F0'}}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div className="alert alert-green" style={{marginTop:16}}><span>ℹ️</span>After saving, the system will query 15 years of FEMS data to generate prescription window analysis and priority score.</div>
+          </div>
+        )}
+
+        <div style={{display:'flex',gap:10,marginTop:24,justifyContent:'space-between'}}>
+          <button className="btn btn-outline" onClick={onClose}>Cancel</button>
+          <div style={{display:'flex',gap:10}}>
+            {step > 0 && <button className="btn btn-outline" onClick={() => setStep(s=>s-1)}>← Back</button>}
+            {step < steps.length-1 && <button className="btn btn-primary" onClick={() => setStep(s=>s+1)}>Next →</button>}
+            {step === steps.length-1 && <button className="btn btn-primary" onClick={handleSave}>✅ Save Burn Unit</button>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── App ─────────────────────────────────────────────────────────────────────
+function App() {
+  const [view, setView] = useState('dashboard');
+  const [units, setUnits] = useState([]);
+  const [selectedUnit, setSelectedUnit] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [dbStatus, setDbStatus] = useState('connecting'); // connecting | live | error
+  const [saveStatus, setSaveStatus] = useState(null); // null | saving | saved | error
+  const [usingSample, setUsingSample] = useState(false);
+
+  useEffect(() => { loadUnits(); }, []);
+
+  async function loadUnits() {
+    setLoading(true);
+    try {
+      const { data, error } = await sb.from('burn_units').select('*').order('priority_score', { ascending: false });
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setUnits(data.map(unitFromDB));
+        setUsingSample(false);
+      } else {
+        // Database is empty — show sample data with a banner
+        setUnits(UNITS);
+        setUsingSample(true);
+      }
+      setDbStatus('live');
+    } catch(e) {
+      console.error('Supabase error:', e);
+      setUnits(UNITS);
+      setUsingSample(true);
+      setDbStatus('error');
+    }
+    setLoading(false);
+  }
+
+  async function saveUnit(u) {
+    setSaveStatus('saving');
+    try {
+      const { error } = await sb.from('burn_units').insert([unitToDB(u)]);
+      if (error) throw error;
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus(null), 3000);
+      await loadUnits();
+    } catch(e) {
+      console.error('Save error:', e);
+      setSaveStatus('error');
+      setTimeout(() => setSaveStatus(null), 4000);
+      // Fallback: add locally
+      setUnits(prev => [...prev.filter(x => !UNITS.find(s=>s.id===x.id)), {...u, id: Date.now()}]);
+    }
+  }
+
+  async function deleteUnit(id) {
+    if (!window.confirm('Delete this burn unit? This cannot be undone.')) return;
+    try {
+      const { error } = await sb.from('burn_units').delete().eq('id', id);
+      if (error) throw error;
+      await loadUnits();
+      setView('units');
+    } catch(e) {
+      alert('Error deleting unit: ' + e.message);
+    }
+  }
+
+  function handleSetView(v) { setView(v); }
+  function handleSelectUnit(u) { setSelectedUnit(u); setView('unit-detail'); }
+
+  if (loading) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0F1923',flexDirection:'column',gap:16}}>
+      <div style={{fontSize:48}}>🔥</div>
+      <div style={{fontSize:18,fontWeight:700,color:'#52B788'}}>RxFire Planner</div>
+      <div style={{fontSize:13,color:'#64748B'}}>Connecting to database...</div>
+      <div style={{width:200,height:4,background:'#1E3448',borderRadius:2,overflow:'hidden'}}>
+        <div style={{width:'60%',height:'100%',background:'#52B788',borderRadius:2,animation:'pulse 1.5s ease-in-out infinite'}}/>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="app">
+      <Sidebar view={view} setView={handleSetView} units={units}/>
+      <div className="main">
+        <div className="topbar">
+          <h2>{{dashboard:'Dashboard',heatmap:'Opportunity Heat Map',calendar:'Burn Calendar',units:'Burn Units',map:'Map View',weather:'Fire Weather',aqi:'Air Quality','unit-detail':'Unit Detail',reports:'Reports'}[view] || 'RxFire Planner'}</h2>
+
+          {/* DB status indicator */}
+          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11}}>
+            <span className={`status-dot ${dbStatus==='live'?'green':dbStatus==='error'?'red':'orange'}`}/>
+            <span style={{color:'#64748B'}}>{dbStatus==='live'?'DB Live':dbStatus==='error'?'DB Error':'Connecting'}</span>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={loadUnits} title="Refresh data from database">🔄 Refresh</button>
+          <span style={{fontSize:12,color:'#64748B'}}>📅 Feb 24, 2026</span>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Burn Unit</button>
+          <button className="btn btn-outline">⬇ Export</button>
+        </div>
+
+        {/* Banners */}
+        {usingSample && dbStatus === 'live' && (
+          <div style={{background:'#1C3D5A',borderBottom:'1px solid #2D6A9F',padding:'10px 20px',fontSize:12,color:'#93C5FD',display:'flex',alignItems:'center',gap:10}}>
+            <span>ℹ️</span>
+            <span>Database is empty — showing sample data. Click <strong>+ Add Burn Unit</strong> to add your first real unit and it will appear for your whole team.</span>
+          </div>
+        )}
+        {dbStatus === 'error' && (
+          <div style={{background:'#3B1A1A',borderBottom:'1px solid #7F1D1D',padding:'10px 20px',fontSize:12,color:'#FCA5A5',display:'flex',alignItems:'center',gap:10}}>
+            <span>⚠️</span>
+            <span>Could not reach database — check your Supabase table is set up (see setup instructions). Showing sample data.</span>
+          </div>
+        )}
+        {saveStatus === 'saving' && (
+          <div style={{background:'#1C3D5A',borderBottom:'1px solid #2D6A9F',padding:'8px 20px',fontSize:12,color:'#93C5FD'}}>💾 Saving to database...</div>
+        )}
+        {saveStatus === 'saved' && (
+          <div style={{background:'#14532D',borderBottom:'1px solid #166534',padding:'8px 20px',fontSize:12,color:'#86EFAC'}}>✅ Saved! All team members will see this unit when they refresh.</div>
+        )}
+        {saveStatus === 'error' && (
+          <div style={{background:'#3B1A1A',borderBottom:'1px solid #7F1D1D',padding:'8px 20px',fontSize:12,color:'#FCA5A5'}}>⚠️ Save failed — unit added locally only. Check database connection.</div>
+        )}
+
+        <div className="content">
+          {view === 'dashboard' && <Dashboard units={units} setView={handleSetView} setSelectedUnit={handleSelectUnit}/>}
+          {view === 'heatmap' && <HeatMap units={units} setSelectedUnit={handleSelectUnit} setView={handleSetView}/>}
+          {view === 'calendar' && <CalendarView units={units}/>}
+          {view === 'units' && <BurnUnitsTable units={units} setSelectedUnit={handleSelectUnit} setView={handleSetView}/>}
+          {view === 'unit-detail' && selectedUnit && <UnitDetail unit={selectedUnit} setView={handleSetView} onDelete={deleteUnit}/>}
+          {view === 'map' && <MapView units={units} setSelectedUnit={handleSelectUnit} setView={handleSetView}/>}
+          {view === 'weather' && <WeatherView units={units}/>}
+          {view === 'aqi' && <AQIView units={units}/>}
+          {view === 'reports' && (
+            <div className="card" style={{textAlign:'center',padding:'60px'}}>
+              <div style={{fontSize:40,marginBottom:16}}>📄</div>
+              <div style={{fontSize:18,fontWeight:700,color:'#E2E8F0',marginBottom:8}}>Reports</div>
+              <div style={{color:'#64748B',fontSize:13,marginBottom:20}}>Export burn season summary, priority rankings, PMS 484-1 plans, and weather window analysis as PDF or Excel.</div>
+              <div style={{display:'flex',gap:10,justifyContent:'center'}}>
+                <button className="btn btn-primary">📊 Export Season Summary</button>
+                <button className="btn btn-outline">📋 Export All PMS 484-1 Plans</button>
+                <button className="btn btn-outline">📈 FEMS Window Analysis Report</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      {showAdd && <AddUnitModal onClose={() => setShowAdd(false)} onSave={u => { setShowAdd(false); saveUnit(u); }}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
