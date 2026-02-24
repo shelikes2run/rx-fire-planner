@@ -11,6 +11,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/shapefile@0.6.6/dist/shapefile.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0F1923;color:#E2E8F0;height:100vh;overflow:hidden;}
@@ -25,1212 +27,1033 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .nav-item:hover{background:#1C2D3E;color:#E2E8F0;}
 .nav-item.active{background:#1B4332;color:#52B788;font-weight:600;}
 .nav-item .icon{width:18px;text-align:center;font-size:14px;}
-.badge{margin-left:auto;background:#E25C0D;color:#fff;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700;}
-.badge.green{background:#166534;}
+.badge{margin-left:auto;background:#166534;color:#86EFAC;font-size:10px;padding:1px 6px;border-radius:10px;font-weight:700;}
+.badge.orange{background:#78350F;color:#FCD34D;}
 .agency-info{padding:12px 14px;border-top:1px solid #1E3448;font-size:11px;color:#64748B;}
 .agency-info strong{color:#94A3B8;display:block;font-size:12px;}
 .main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
-.topbar{height:56px;background:#0A1520;border-bottom:1px solid #1E3448;display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;}
-.topbar h2{font-size:15px;font-weight:600;color:#E2E8F0;flex:1;}
-.topbar-meta{font-size:12px;color:#64748B;}
+.topbar{height:52px;background:#0A1520;border-bottom:1px solid #1E3448;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;}
+.topbar h2{font-size:14px;font-weight:600;color:#E2E8F0;flex:1;}
 .btn{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .15s;}
 .btn-primary{background:#2D6A4F;color:#fff;}
 .btn-primary:hover{background:#40916C;}
 .btn-sm{padding:5px 10px;font-size:11px;}
 .btn-outline{background:transparent;border:1px solid #2D4057;color:#94A3B8;}
 .btn-outline:hover{border-color:#40916C;color:#52B788;}
-.btn-danger{background:#7F1D1D;color:#FCA5A5;}
+.btn-danger{background:#7F1D1D;color:#FCA5A5;border:none;}
 .content{flex:1;overflow-y:auto;padding:20px;}
 .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
 .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
 .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
 .card{background:#1C2D3E;border:1px solid #1E3448;border-radius:10px;padding:16px;}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.card-title{font-size:13px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;}
-.kpi-val{font-size:28px;font-weight:700;color:#E2E8F0;line-height:1;}
-.kpi-sub{font-size:11px;color:#64748B;margin-top:4px;}
-.kpi-icon{font-size:24px;}
-.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;}
-.status-dot.green{background:#22C55E;}
-.status-dot.orange{background:#F59E0B;}
-.status-dot.red{background:#EF4444;}
-.status-dot.gray{background:#475569;}
-.priority-badge{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;font-size:11px;font-weight:700;}
-.p-critical{background:#7F1D1D;color:#FCA5A5;}
-.p-high{background:#78350F;color:#FCD34D;}
-.p-medium{background:#14532D;color:#86EFAC;}
-.p-low{background:#1E3A5F;color:#93C5FD;}
-table{width:100%;border-collapse:collapse;font-size:13px;}
-th{text-align:left;padding:10px 12px;font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid #1E3448;}
-td{padding:10px 12px;border-bottom:1px solid #1E3448;color:#CBD5E1;}
-tr:hover td{background:#1A2B3C;}
-.window-bar{height:6px;border-radius:3px;background:#1E3448;overflow:hidden;margin-top:4px;}
-.window-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#2D6A4F,#52B788);}
-.month-label{font-size:9px;color:#64748B;font-weight:600;}
-/* Heat Map */
-.heatmap-grid{display:grid;grid-template-columns:180px repeat(12,1fr);gap:2px;font-size:11px;}
-.hm-header{padding:6px 4px;text-align:center;color:#64748B;font-weight:600;font-size:10px;}
-.hm-unit{padding:6px 8px;color:#94A3B8;display:flex;align-items:center;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hm-cell{height:36px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:rgba(255,255,255,.8);cursor:pointer;transition:transform .1s;}
-.hm-cell:hover{transform:scale(1.1);z-index:10;}
-/* Calendar */
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
-.cal-header{text-align:center;font-size:11px;font-weight:600;color:#64748B;padding:6px;}
-.cal-day{min-height:70px;border-radius:6px;padding:6px;cursor:pointer;border:1px solid #1E3448;background:#152030;transition:all .15s;}
-.cal-day:hover{border-color:#40916C;}
-.cal-day.today{border-color:#52B788;background:#1B4332;}
-.cal-day.other-month{opacity:.4;}
-.cal-day-num{font-size:12px;font-weight:600;color:#94A3B8;}
-.cal-units{margin-top:4px;display:flex;flex-direction:column;gap:2px;}
-.cal-unit-chip{font-size:9px;padding:1px 5px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* Go/No-Go */
-.param-row{display:grid;grid-template-columns:180px 120px 120px 100px 60px;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid #1A2B3C;font-size:12px;}
-.param-label{color:#94A3B8;font-weight:500;}
-.param-range{color:#64748B;}
-.param-current{font-weight:700;}
-.go{color:#22C55E;}
-.nogo{color:#EF4444;}
-.marginal{color:#F59E0B;}
-/* Month chart */
-.month-chart-wrap{position:relative;height:160px;}
-/* Modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:flex;align-items:center;justify-content:center;}
-.modal{background:#152030;border:1px solid #2D4057;border-radius:12px;width:760px;max-height:90vh;overflow-y:auto;padding:24px;}
-.modal-title{font-size:17px;font-weight:700;color:#E2E8F0;margin-bottom:4px;}
-.modal-sub{font-size:12px;color:#64748B;margin-bottom:20px;}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.form-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.field{display:flex;flex-direction:column;gap:4px;}
-.field label{font-size:11px;font-weight:600;color:#94A3B8;text-transform:uppercase;letter-spacing:.4px;}
-.field input,.field select,.field textarea{background:#0F1923;border:1px solid #2D4057;border-radius:6px;padding:8px 10px;color:#E2E8F0;font-size:13px;outline:none;font-family:inherit;}
-.field input:focus,.field select,.field textarea:focus{border-color:#40916C;}
-.field textarea{resize:vertical;min-height:70px;}
-.range-row{display:grid;grid-template-columns:1fr 20px 1fr;gap:6px;align-items:center;}
-.range-sep{text-align:center;color:#64748B;font-size:12px;}
-.step-indicator{display:flex;gap:8px;margin-bottom:20px;}
-.step{flex:1;height:4px;border-radius:2px;background:#1E3448;}
-.step.done{background:#2D6A4F;}
-.step.active{background:#52B788;}
-.step-label{display:flex;justify-content:space-between;font-size:10px;color:#64748B;margin-bottom:12px;}
-.section-title{font-size:12px;font-weight:700;color:#52B788;text-transform:uppercase;letter-spacing:.6px;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid #1E3448;}
-.month-checks{display:flex;flex-wrap:wrap;gap:6px;}
-.month-check{display:flex;align-items:center;gap:4px;cursor:pointer;}
-.month-check input{accent-color:#52B788;}
-.month-check span{font-size:12px;color:#94A3B8;}
-/* Tabs */
-.tabs{display:flex;gap:2px;margin-bottom:16px;background:#0F1923;padding:4px;border-radius:8px;}
-.tab{padding:7px 14px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;color:#64748B;transition:all .15s;}
-.tab.active{background:#1C2D3E;color:#52B788;}
-/* Leaflet fix */
-#map{height:400px;border-radius:8px;}
-/* Popup detail */
-.detail-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
-.detail-title{font-size:20px;font-weight:700;color:#E2E8F0;}
-.detail-sub{font-size:13px;color:#64748B;margin-top:3px;}
-.info-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;margin-right:6px;margin-bottom:4px;}
-.pill-green{background:#14532D;color:#86EFAC;}
-.pill-orange{background:#78350F;color:#FCD34D;}
+.card-title{font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.6px;}
+.stat-value{font-size:28px;font-weight:700;color:#E2E8F0;line-height:1;}
+.stat-sub{font-size:11px;color:#64748B;margin-top:4px;}
+.stat-delta{font-size:11px;margin-top:6px;}
+.stat-delta.up{color:#52B788;}
+.stat-delta.down{color:#F87171;}
+.pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.pill-green{background:#1B4332;color:#52B788;}
+.pill-yellow{background:#78350F;color:#FCD34D;}
 .pill-red{background:#7F1D1D;color:#FCA5A5;}
 .pill-blue{background:#1E3A5F;color:#93C5FD;}
-.pill-gray{background:#1E3448;color:#94A3B8;}
-/* Alerts */
-.alert{padding:10px 14px;border-radius:8px;font-size:12px;display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.alert-green{background:#14532D;border:1px solid #166534;color:#86EFAC;}
-.alert-red{background:#7F1D1D;border:1px solid #991B1B;color:#FCA5A5;}
-.alert-orange{background:#78350F;border:1px solid #92400E;color:#FCD34D;}
-/* Scrollbar */
-::-webkit-scrollbar{width:6px;height:6px;}
-::-webkit-scrollbar-track{background:#0A1520;}
-::-webkit-scrollbar-thumb{background:#2D4057;border-radius:3px;}
-::-webkit-scrollbar-thumb:hover{background:#40916C;}
-/* Responsive */
-@media(max-width:900px){.grid-4{grid-template-columns:1fr 1fr;}}
-.drag-zone{border:2px dashed #2D4057;border-radius:8px;padding:24px;text-align:center;color:#64748B;font-size:13px;cursor:pointer;transition:all .2s;}
-.drag-zone:hover{border-color:#40916C;color:#52B788;}
-.score-bar{height:8px;border-radius:4px;background:#1E3448;overflow:hidden;}
-.score-fill{height:100%;border-radius:4px;}
+.pill-gray{background:#1E2D3E;color:#94A3B8;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;font-size:10px;font-weight:600;color:#475569;text-transform:uppercase;letter-spacing:.6px;padding:8px 10px;border-bottom:1px solid #1E3448;}
+td{padding:10px;font-size:12px;color:#CBD5E1;border-bottom:1px solid #152032;}
+tr:hover td{background:#1E2D3E;cursor:pointer;}
+.priority-bar{height:6px;border-radius:3px;background:#1E3448;}
+.priority-fill{height:100%;border-radius:3px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:9999;}
+.modal{background:#1C2D3E;border:1px solid #2D4057;border-radius:12px;width:640px;max-height:85vh;display:flex;flex-direction:column;}
+.modal-header{padding:18px 20px;border-bottom:1px solid #1E3448;display:flex;align-items:center;justify-content:space-between;}
+.modal-header h3{font-size:15px;font-weight:700;color:#E2E8F0;}
+.modal-body{padding:20px;overflow-y:auto;flex:1;}
+.modal-footer{padding:14px 20px;border-top:1px solid #1E3448;display:flex;justify-content:space-between;align-items:center;}
+.form-group{margin-bottom:14px;}
+.form-label{display:block;font-size:11px;font-weight:600;color:#94A3B8;margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
+.form-input{width:100%;background:#0F1923;border:1px solid #2D4057;border-radius:6px;padding:8px 10px;color:#E2E8F0;font-size:13px;outline:none;}
+.form-input:focus{border-color:#52B788;}
+.form-select{width:100%;background:#0F1923;border:1px solid #2D4057;border-radius:6px;padding:8px 10px;color:#E2E8F0;font-size:13px;outline:none;cursor:pointer;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.step-indicator{display:flex;gap:6px;margin-bottom:20px;}
+.step-dot{width:28px;height:4px;border-radius:2px;background:#1E3448;transition:background .2s;}
+.step-dot.active{background:#52B788;}
+.step-dot.done{background:#2D6A4F;}
+.heatmap-grid{display:grid;grid-template-columns:60px repeat(12,1fr);gap:2px;font-size:10px;}
+.hm-cell{height:28px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;cursor:pointer;transition:transform .1s;}
+.hm-cell:hover{transform:scale(1.1);z-index:2;position:relative;}
+.hm-label{color:#64748B;display:flex;align-items:center;font-size:10px;}
+.hm-month{color:#64748B;text-align:center;padding:4px 0;font-size:10px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-header{text-align:center;font-size:10px;color:#64748B;padding:4px;}
+.cal-day{aspect-ratio:1;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;cursor:pointer;border:1px solid transparent;transition:all .15s;}
+.cal-day:hover{border-color:#40916C;}
+.cal-day.has-window{background:#1B4332;}
+.cal-day.today{border-color:#52B788;}
+.cal-day.other-month{opacity:.3;}
+.go-check{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;margin-bottom:6px;font-size:12px;}
+.go-check.pass{background:#1B4332;color:#86EFAC;}
+.go-check.fail{background:#7F1D1D;color:#FCA5A5;}
+.go-check.warn{background:#78350F;color:#FCD34D;}
+.toast-container{position:fixed;bottom:20px;right:20px;display:flex;flex-direction:column;gap:8px;z-index:99999;}
+.toast{background:#1C2D3E;border:1px solid #2D4057;border-radius:8px;padding:12px 16px;min-width:260px;max-width:340px;display:flex;align-items:flex-start;gap:10px;animation:slideIn .25s ease;box-shadow:0 4px 20px rgba(0,0,0,.4);}
+.toast.green{border-left:3px solid #52B788;}
+.toast.orange{border-left:3px solid #F59E0B;}
+.toast.red{border-left:3px solid #F87171;}
+.toast-icon{font-size:18px;flex-shrink:0;}
+.toast-content{flex:1;}
+.toast-title{font-size:12px;font-weight:700;color:#E2E8F0;}
+.toast-msg{font-size:11px;color:#94A3B8;margin-top:2px;}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.realtime-dot{width:8px;height:8px;border-radius:50%;background:#52B788;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.info-banner{background:#1E2D3E;border:1px solid #2D4057;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:12px;color:#94A3B8;display:flex;align-items:center;gap:10px;}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
-const {useState, useEffect, useRef, useCallback} = React;
+const {useState,useEffect,useRef,useCallback}=React;
 
-// ─── Supabase ────────────────────────────────────────────────────────────────
-const SUPABASE_URL = 'https://pekllkjxjwpwcoathlfg.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBla2xsa2p4andwd2NvYXRobGZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTAxNzgsImV4cCI6MjA4NzQ2NjE3OH0.oWz7KLE-Sh95fzXcKJebcfH9lt6EWnpvTo94dV4311k';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ─── Supabase ─────────────────────────────────────────────────────────────────
+const SUPABASE_URL='https://pekllkjxjwpwcoathlfg.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBla2xsa2p4andwd2NvYXRobGZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE4OTAxNzgsImV4cCI6MjA4NzQ2NjE3OH0.oWz7KLE-Sh95fzXcKJebcfH9lt6EWnpvTo94dV4311k';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
-function unitFromDB(row) {
-  return {
-    id: row.id,
-    name: row.name || '',
-    unitId: row.unit_id || '',
-    agency: row.agency || 'USFS',
-    forest: row.forest || '',
-    district: row.district || '',
-    lat: parseFloat(row.lat) || 37.5,
-    lon: parseFloat(row.lon) || -119.5,
-    acres: parseInt(row.acres) || 0,
-    status: row.status || 'Pending Review',
-    complexity: row.complexity || 'Low',
-    burnBoss: row.burn_boss || '',
-    objectives: row.objectives || '',
-    fuels: row.fuels || '',
-    rx: row.rx || {},
-    smoke: row.smoke || {},
-    targetMonths: row.target_months || [],
-    monthly: row.monthly || new Array(12).fill(0),
-    windowPct: row.window_pct || 0,
-    priorityScore: row.priority_score || 0,
-    currentCond: row.current_cond || {temp:65,rh:40,wind:10,windDir:'SW',fm10:15,fm100:22,haines:3,erc:40,aqi:35,mixHt:2000,transport:14},
-  };
-}
-
-function unitToDB(u) {
-  return {
-    name: u.name,
-    unit_id: u.unitId,
-    agency: u.agency,
-    forest: u.forest,
-    district: u.district,
-    lat: u.lat,
-    lon: u.lon,
-    acres: u.acres,
-    status: u.status,
-    complexity: u.complexity,
-    burn_boss: u.burnBoss,
-    objectives: u.objectives,
-    fuels: u.fuels,
-    rx: u.rx,
-    smoke: u.smoke,
-    target_months: u.targetMonths,
-    monthly: u.monthly,
-    window_pct: u.windowPct,
-    priority_score: u.priorityScore,
-    current_cond: u.currentCond,
-  };
-}
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const MONTH_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const TODAY = new Date(2026, 1, 24); // Feb 24 2026
-
-const UNITS = [
-  {id:1,name:'Crane Flat Meadow',unitId:'STF-CR-001',agency:'USFS',forest:'Stanislaus NF',district:'Groveland RD',lat:37.754,lon:-119.832,acres:245,status:'Approved',complexity:'Low',burnBoss:'J. Martinez',
-   objectives:'Maintain meadow ecosystem, reduce encroaching conifers, improve wildlife habitat.',
-   fuels:'Mixed conifer litter, shrubs, scattered logs. Scott & Burgan TL3.',
-   rx:{tempMin:40,tempMax:75,rhMin:25,rhMax:55,windMin:3,windMax:15,windDir:'210–330°',mixHt:1500,transport:10,fm1Min:3,fm1Max:10,fm10Min:8,fm10Max:20,fm100Max:25,fm1000Max:30,liveFmMin:80,hainesMax:4,ercMin:20,ercMax:55,flameLenMax:4},
-   targetMonths:[3,4,10,11],currentCond:{temp:62,rh:38,wind:8,windDir:'SW',fm10:12,fm100:18,haines:3,erc:35,aqi:38,mixHt:2200,transport:14},
-   windowPct:11,priorityScore:89,
-   monthly:[0,2,18,22,12,0,0,0,0,15,20,5],
-   smoke:{airBasin:'San Joaquin Valley',permitReq:true,receptors:'Groveland (8 mi), Yosemite Valley (12 mi)',mitigation:'Burn only when transport winds carry smoke away from valley.'}},
-  {id:2,name:'Pine Mountain Chaparral',unitId:'LPF-PM-003',agency:'USFS',forest:'Los Padres NF',district:'Mount Pinos RD',lat:34.831,lon:-119.108,acres:420,status:'Approved',complexity:'Moderate',burnBoss:'R. Chen',
-   objectives:'Reduce high-intensity chaparral fuel loads, create fuel breaks, improve road corridor safety.',
-   fuels:'Dense chamise and manzanita chaparral. Anderson 4.',
-   rx:{tempMin:45,tempMax:70,rhMin:20,rhMax:50,windMin:5,windMax:20,windDir:'270–315°',mixHt:2000,transport:15,fm1Min:2,fm1Max:8,fm10Min:5,fm10Max:15,fm100Max:20,fm1000Max:25,liveFmMin:60,hainesMax:5,ercMin:30,ercMax:70,flameLenMax:6},
-   targetMonths:[11,12,1,2],currentCond:{temp:78,rh:18,wind:22,windDir:'NE',fm10:6,fm100:12,haines:6,erc:72,aqi:55,mixHt:800,transport:8},
-   windowPct:8,priorityScore:94,
-   monthly:[12,15,8,3,0,0,0,0,0,0,8,14],
-   smoke:{airBasin:'South Coast',permitReq:true,receptors:'Frazier Park (6 mi), Bakersfield (35 mi)',mitigation:'Coordinate with SBCAPCD. Limit tonnage to 50 tons/day.'}},
-  {id:3,name:'Hume Lake Ponderosa',unitId:'SNF-HL-007',agency:'USFS',forest:'Sequoia NF',district:'Hume Lake RD',lat:36.793,lon:-118.898,acres:380,status:'Pending Review',complexity:'Moderate',burnBoss:'A. Thompson',
-   objectives:'Restore ponderosa pine stand structure, reduce ladder fuels and surface fuels.',
-   fuels:'Ponderosa pine/white fir mix, heavy needle cast and duff. Scott & Burgan TU2.',
-   rx:{tempMin:45,tempMax:80,rhMin:20,rhMax:60,windMin:3,windMax:18,windDir:'225–300°',mixHt:1200,transport:8,fm1Min:4,fm1Max:12,fm10Min:10,fm10Max:25,fm100Max:30,fm1000Max:35,liveFmMin:90,hainesMax:4,ercMin:15,ercMax:50,flameLenMax:5},
-   targetMonths:[4,5,10,11],currentCond:{temp:68,rh:35,wind:10,windDir:'SW',fm10:15,fm100:22,haines:3,erc:42,aqi:28,mixHt:1800,transport:12},
-   windowPct:14,priorityScore:82,
-   monthly:[0,0,8,20,25,5,0,0,0,18,22,5],
-   smoke:{airBasin:'San Joaquin Valley',permitReq:true,receptors:'Kings Canyon Village (3 mi), Fresno (55 mi)',mitigation:'Use SJVAPCD day-of authorization. Monitor PM2.5 at Fresno monitor.'}},
-  {id:4,name:'McCloud Flats Mixed Conifer',unitId:'STF-MC-012',agency:'USFS',forest:'Shasta-Trinity NF',district:'McCloud RD',lat:41.053,lon:-121.887,acres:612,status:'Approved',complexity:'High',burnBoss:'D. Nakamura',
-   objectives:'Reduce fuel continuity in WUI interface, improve forest resilience post-drought mortality.',
-   fuels:'Mixed conifer with high mortality. Anderson 8/9 transition zone.',
-   rx:{tempMin:50,tempMax:85,rhMin:15,rhMax:45,windMin:5,windMax:20,windDir:'270–330°',mixHt:2000,transport:15,fm1Min:3,fm1Max:10,fm10Min:6,fm10Max:18,fm100Max:22,fm1000Max:28,liveFmMin:75,hainesMax:5,ercMin:25,ercMax:60,flameLenMax:7},
-   targetMonths:[5,6,9,10],currentCond:{temp:45,rh:72,wind:3,windDir:'N',fm10:28,fm100:35,haines:2,erc:18,aqi:15,mixHt:3000,transport:20},
-   windowPct:18,priorityScore:75,
-   monthly:[0,0,0,5,22,28,15,8,20,25,8,0],
-   smoke:{airBasin:'North Coast',permitReq:false,receptors:'McCloud (4 mi), Mount Shasta City (18 mi)',mitigation:'Avoid burning on days with inversion. Monitor McCloud Valley.'}},
-  {id:5,name:'South Fork Wildlife Area',unitId:'SRF-SF-005',agency:'USFS',forest:'Six Rivers NF',district:'Lower Trinity RD',lat:40.621,lon:-123.658,acres:890,status:'Pending Review',complexity:'Moderate',burnBoss:'L. Williams',
-   objectives:'Improve tanoak woodland structure, enhance Pacific fisher habitat, reduce fuel accumulation.',
-   fuels:'Tanoak/Douglas-fir mix, deep duff and down wood. Anderson 9.',
-   rx:{tempMin:50,tempMax:80,rhMin:25,rhMax:55,windMin:5,windMax:20,windDir:'225–315°',mixHt:1500,transport:12,fm1Min:5,fm1Max:12,fm10Min:10,fm10Max:25,fm100Max:30,fm1000Max:35,liveFmMin:85,hainesMax:4,ercMin:20,ercMax:55,flameLenMax:5},
-   targetMonths:[3,4,5,10],currentCond:{temp:52,rh:68,wind:12,windDir:'SW',fm10:22,fm100:30,haines:2,erc:22,aqi:22,mixHt:2400,transport:16},
-   windowPct:22,priorityScore:68,
-   monthly:[0,0,20,28,30,12,5,0,8,25,18,5],
-   smoke:{airBasin:'North Coast',permitReq:false,receptors:'Willow Creek (12 mi)',mitigation:'No authorization needed. Monitor air quality at Willow Creek.'}},
-  {id:6,name:'Descanso Chaparral',unitId:'CNF-DC-009',agency:'USFS',forest:'Cleveland NF',district:'Descanso RD',lat:32.855,lon:-116.618,acres:315,status:'Approved',complexity:'High',burnBoss:'M. Garcia',
-   objectives:'Reduce post-fire shrub fuel accumulation, create habitat diversity, protect adjacent structures.',
-   fuels:'Dense post-fire chaparral resprouts. Anderson 4/5.',
-   rx:{tempMin:50,tempMax:75,rhMin:20,rhMax:45,windMin:5,windMax:18,windDir:'270–315°',mixHt:2500,transport:18,fm1Min:2,fm1Max:7,fm10Min:5,fm10Max:12,fm100Max:15,fm1000Max:20,liveFmMin:60,hainesMax:5,ercMin:35,ercMax:75,flameLenMax:6},
-   targetMonths:[11,12,1,2],currentCond:{temp:82,rh:15,wind:25,windDir:'NE',fm10:4,fm100:8,haines:6,erc:80,aqi:62,mixHt:400,transport:5},
-   windowPct:9,priorityScore:91,
-   monthly:[10,14,8,3,0,0,0,0,0,0,5,12],
-   smoke:{airBasin:'South Coast',permitReq:true,receptors:'Alpine (8 mi), El Cajon (18 mi), San Diego (30 mi)',mitigation:'SDAPCD permit required. Day-of smoke forecast required.'}},
-  {id:7,name:'Mammoth Lakes Red Fir',unitId:'INF-MM-004',agency:'USFS',forest:'Inyo NF',district:'Mammoth Lakes RD',lat:37.648,lon:-118.972,acres:178,status:'Approved',complexity:'Moderate',burnBoss:'K. Johnson',
-   objectives:'Restore red fir forest structure, reduce fuel loads, improve high-elevation resiliency.',
-   fuels:'Red fir with high-mortality pockets. Scott & Burgan TU3.',
-   rx:{tempMin:55,tempMax:85,rhMin:10,rhMax:35,windMin:3,windMax:12,windDir:'225–270°',mixHt:2500,transport:15,fm1Min:2,fm1Max:7,fm10Min:4,fm10Max:12,fm100Max:18,fm1000Max:25,liveFmMin:70,hainesMax:5,ercMin:40,ercMax:80,flameLenMax:5},
-   targetMonths:[6,7,8],currentCond:{temp:35,rh:80,wind:5,windDir:'W',fm10:35,fm100:45,haines:1,erc:8,aqi:10,mixHt:3500,transport:22},
-   windowPct:7,priorityScore:96,
-   monthly:[0,0,0,0,0,15,28,25,10,0,0,0],
-   smoke:{airBasin:'Great Basin Valleys',permitReq:false,receptors:'Mammoth Lakes Town (3 mi)',mitigation:'Notify GBUAPCD. Monitor PM2.5 at Mammoth airport station.'}}
+// ─── Sample Data ──────────────────────────────────────────────────────────────
+const SAMPLE_UNITS=[
+  {id:'s1',name:'Crane Flat Understory',unitId:'STF-001',agency:'USFS',forest:'Stanislaus NF',district:'Groveland',lat:37.76,lon:-119.83,acres:340,status:'Approved',complexity:'Low',burnBoss:'Martinez, J.',objectives:'Reduce ladder fuels, restore ponderosa pine understory.',fuels:'Mixed conifer litter, manzanita shrub',rx:{tempMin:40,tempMax:70,rhMin:25,rhMax:55,windMin:3,windMax:12,windDir:'SW-NW',fm10Max:12,fm100Max:18,fmLiveMin:90,hainesMax:5,ercMax:40,mixHgtMin:2000,transportMin:10,flameLenMax:4,aqiMax:100},smoke:{sClass:'II',dispersal:'Good',transportWind:'SW'},targetMonths:[3,4,10,11],monthly:[5,8,12,15,10,3,0,0,5,18,20,12],windowPct:28,priorityScore:82,currentCond:{temp:58,rh:42,wind:8,fm10:9,fm100:14,haines:4,erc:28,aqi:45}},
+  {id:'s2',name:'Pine Mountain Chaparral',unitId:'ANF-042',agency:'USFS',forest:'Angeles NF',district:'Santa Clara/Mojave',lat:34.52,lon:-118.93,acres:890,status:'Planned',complexity:'Moderate',burnBoss:'Chen, R.',objectives:'Chaparral rejuvenation, mule deer habitat improvement.',fuels:'Chamise, scrub oak, ceanothus',rx:{tempMin:45,tempMax:75,rhMin:20,rhMax:45,windMin:5,windMax:15,windDir:'N-NW',fm10Max:10,fm100Max:15,fmLiveMin:75,hainesMax:5,ercMax:55,mixHgtMin:2500,transportMin:15,flameLenMax:6,aqiMax:100},smoke:{sClass:'III',dispersal:'Moderate',transportWind:'N'},targetMonths:[2,3,11,12],monthly:[3,10,14,6,2,0,0,0,0,4,8,10],windowPct:14,priorityScore:91,currentCond:{temp:63,rh:28,wind:11,fm10:7,fm100:11,haines:5,erc:44,aqi:62}},
+  {id:'s3',name:'Hume Lake Rx Block 3',unitId:'SQF-017',agency:'USFS',forest:'Sequoia NF',district:'Hume Lake',lat:36.79,lon:-118.91,acres:210,status:'Ready',complexity:'Low',burnBoss:'Thompson, A.',objectives:'Giant sequoia grove protection, fuel reduction.',fuels:'White fir ladder fuels, sequoia duff',rx:{tempMin:38,tempMax:65,rhMin:30,rhMax:60,windMin:2,windMax:10,windDir:'SW-W',fm10Max:14,fm100Max:20,fmLiveMin:100,hainesMax:4,ercMax:35,mixHgtMin:1800,transportMin:8,flameLenMax:3,aqiMax:75},smoke:{sClass:'II',dispersal:'Good',transportWind:'SW'},targetMonths:[5,6,9,10],monthly:[0,2,5,8,12,20,15,8,18,14,4,0],windowPct:36,priorityScore:71,currentCond:{temp:52,rh:51,wind:6,fm10:12,fm100:17,haines:3,erc:22,aqi:28}},
+  {id:'s4',name:'McCloud Flats Unit A',unitId:'SHF-088',agency:'USFS',forest:'Shasta-Trinity NF',district:'McCloud',lat:41.25,lon:-122.08,acres:560,status:'Planned',complexity:'Moderate',burnBoss:'Kowalski, B.',objectives:'Ponderosa pine restoration, spotted owl habitat.',fuels:'Ponderosa pine duff, grass understory',rx:{tempMin:42,tempMax:72,rhMin:28,rhMax:52,windMin:4,windMax:14,windDir:'W-NW',fm10Max:13,fm100Max:19,fmLiveMin:85,hainesMax:5,ercMax:45,mixHgtMin:2200,transportMin:12,flameLenMax:5,aqiMax:100},smoke:{sClass:'II',dispersal:'Good',transportWind:'W'},targetMonths:[4,5,9,10],monthly:[0,0,4,8,15,18,5,2,14,16,8,2],windowPct:30,priorityScore:78,currentCond:{temp:55,rh:38,wind:9,fm10:10,fm100:15,haines:4,erc:31,aqi:35}},
+  {id:'s5',name:'Descanso Woodland Rx',unitId:'CNF-033',agency:'USFS',forest:'Cleveland NF',district:'Descanso',lat:32.85,lon:-116.62,acres:175,status:'Approved',complexity:'Low',burnBoss:'Ramirez, S.',objectives:'Oak woodland restoration, reduce annual grass competition.',fuels:'Annual grass, coast live oak leaf litter',rx:{tempMin:48,tempMax:78,rhMin:18,rhMax:42,windMin:4,windMax:14,windDir:'W-SW',fm10Max:9,fm100Max:13,fmLiveMin:70,hainesMax:5,ercMax:60,mixHgtMin:2800,transportMin:16,flameLenMax:4,aqiMax:100},smoke:{sClass:'III',dispersal:'Moderate',transportWind:'W'},targetMonths:[1,2,11,12],monthly:[8,12,6,2,0,0,0,0,0,1,5,10],windowPct:12,priorityScore:94,currentCond:{temp:67,rh:24,wind:13,fm10:6,fm100:9,haines:5,erc:51,aqi:71}},
+  {id:'s6',name:'Mammoth Lakes Fuels',unitId:'INF-011',agency:'USFS',forest:'Inyo NF',district:'Mammoth',lat:37.65,lon:-118.97,acres:430,status:'Planned',complexity:'Moderate',burnBoss:'Nakamura, T.',objectives:'WUI protection, Jeffrey pine health.',fuels:'Jeffrey pine needle cast, bitterbrush',rx:{tempMin:35,tempMax:65,rhMin:30,rhMax:55,windMin:3,windMax:11,windDir:'SW-W',fm10Max:13,fm100Max:18,fmLiveMin:95,hainesMax:4,ercMax:32,mixHgtMin:1600,transportMin:9,flameLenMax:4,aqiMax:100},smoke:{sClass:'II',dispersal:'Good',transportWind:'SW'},targetMonths:[6,7,8],monthly:[0,0,0,2,5,10,18,16,9,4,0,0],windowPct:22,priorityScore:85,currentCond:{temp:44,rh:47,wind:7,fm10:11,fm100:16,haines:3,erc:20,aqi:18}}
 ];
 
-function calcPriority(u) {
-  const windowScore = (100 - u.windowPct) * 0.6;
-  const statusBonus = u.status === 'Approved' ? 20 : 10;
-  const acresBonus = Math.min(u.acres / 50, 10);
-  return Math.round(windowScore + statusBonus + acresBonus);
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const STATUS_ORDER={Ready:0,Approved:1,Planned:2,Draft:3,Completed:4,Cancelled:5};
+
+function hmColor(pct){
+  if(pct===0)return '#0F1923';
+  const stops=[[0,'#1B4332'],[25,'#2D6A4F'],[50,'#40916C'],[75,'#52B788'],[100,'#74C69D']];
+  const p=Math.min(100,Math.max(0,pct));
+  for(let i=1;i<stops.length;i++){
+    if(p<=stops[i][0]){
+      const t=(p-stops[i-1][0])/(stops[i][0]-stops[i-1][0]);
+      return lerpColor(stops[i-1][1],stops[i][1],t);
+    }
+  }
+  return stops[stops.length-1][1];
+}
+function lerpColor(a,b,t){
+  const ah=parseInt(a.slice(1),16),bh=parseInt(b.slice(1),16);
+  const ar=(ah>>16)&0xff,ag=(ah>>8)&0xff,ab=ah&0xff;
+  const br=(bh>>16)&0xff,bg=(bh>>8)&0xff,bb=bh&0xff;
+  const r=Math.round(ar+(br-ar)*t),g=Math.round(ag+(bg-ag)*t),bl=Math.round(ab+(bb-ab)*t);
+  return `#${r.toString(16).padStart(2,'0')}${g.toString(16).padStart(2,'0')}${bl.toString(16).padStart(2,'0')}`;
 }
 
-function checkParam(val, min, max) {
-  if (val === undefined || val === null) return 'unknown';
-  if (min !== undefined && val < min) return 'nogo';
-  if (max !== undefined && val > max) return 'nogo';
-  const range = (max || 0) - (min || 0);
-  const buffer = range * 0.1;
-  if (min !== undefined && val < min + buffer) return 'marginal';
-  if (max !== undefined && val > max - buffer) return 'marginal';
-  return 'go';
+// ─── DB helpers ───────────────────────────────────────────────────────────────
+function unitFromDB(r){
+  return {
+    id:r.id,name:r.name,unitId:r.unit_id,agency:r.agency,forest:r.forest,
+    district:r.district,lat:r.lat,lon:r.lon,acres:r.acres,status:r.status,
+    complexity:r.complexity,burnBoss:r.burn_boss,objectives:r.objectives,
+    fuels:r.fuels,rx:r.rx||{},smoke:r.smoke||{},
+    targetMonths:r.target_months||[],monthly:r.monthly||Array(12).fill(0),
+    windowPct:r.window_pct||0,priorityScore:r.priority_score||0,
+    currentCond:r.current_cond||{}
+  };
+}
+function unitToDB(u){
+  return {
+    name:u.name,unit_id:u.unitId,agency:u.agency,forest:u.forest,
+    district:u.district,lat:parseFloat(u.lat)||0,lon:parseFloat(u.lon)||0,
+    acres:parseInt(u.acres)||0,status:u.status,complexity:u.complexity,
+    burn_boss:u.burnBoss,objectives:u.objectives,fuels:u.fuels,
+    rx:u.rx||{},smoke:u.smoke||{},
+    target_months:u.targetMonths||[],monthly:u.monthly||Array(12).fill(0),
+    window_pct:u.windowPct||0,priority_score:u.priorityScore||0,
+    current_cond:u.currentCond||{}
+  };
 }
 
-function isInWindow(unit) {
-  const c = unit.currentCond;
-  const r = unit.rx;
-  return c.temp >= r.tempMin && c.temp <= r.tempMax &&
-    c.rh >= r.rhMin && c.rh <= r.rhMax &&
-    c.wind >= r.windMin && c.wind <= r.windMax &&
-    c.fm10 >= r.fm10Min && c.fm10 <= r.fm10Max &&
-    c.fm100 <= r.fm100Max && c.haines <= r.hainesMax &&
-    c.erc >= r.ercMin && c.erc <= r.ercMax && c.aqi < 100;
-}
-
-function hmColor(pct) {
-  if (!pct || pct === 0) return '#0F1923';
-  if (pct < 6) return '#1B4332';
-  if (pct < 13) return '#2D6A4F';
-  if (pct < 20) return '#40916C';
-  if (pct < 28) return '#52B788';
-  return '#74C69D';
-}
-
-function priorityColor(score) {
-  if (score >= 90) return 'p-critical';
-  if (score >= 80) return 'p-high';
-  if (score >= 65) return 'p-medium';
-  return 'p-low';
-}
-
-function priorityLabel(score) {
-  if (score >= 90) return 'Critical';
-  if (score >= 80) return 'High';
-  if (score >= 65) return 'Medium';
-  return 'Low';
-}
-
-function aqiCategory(aqi) {
-  if (aqi <= 50) return {label:'Good',color:'#22C55E'};
-  if (aqi <= 100) return {label:'Moderate',color:'#EAB308'};
-  if (aqi <= 150) return {label:'Unhealthy for Sensitive',color:'#F97316'};
-  return {label:'Unhealthy',color:'#EF4444'};
-}
-
-// ─── Sidebar ────────────────────────────────────────────────────────────────
-function Sidebar({view, setView, units}) {
-  const inWindowCount = units.filter(isInWindow).length;
-  const navItems = [
-    {id:'dashboard', icon:'📊', label:'Dashboard'},
-    {id:'heatmap',   icon:'🔥', label:'Opportunity Heat Map'},
-    {id:'calendar',  icon:'📅', label:'Burn Calendar'},
-    {id:'units',     icon:'📋', label:'Burn Units', badge: units.length},
-    {id:'map',       icon:'🗺️', label:'Map View'},
-    {id:'weather',   icon:'☁️', label:'Weather'},
-    {id:'aqi',       icon:'💨', label:'Air Quality'},
-    {id:'reports',   icon:'📄', label:'Reports'},
-  ];
-  return (
-    <div className="sidebar">
-      <div className="logo">
-        <h1>🔥 RxFire Planner</h1>
-        <p>CA Prescribed Fire Scheduling</p>
-      </div>
-      <div className="nav">
-        <div className="nav-section">Main</div>
-        {navItems.map(item => (
-          <div key={item.id} className={`nav-item ${view === item.id || (view === 'unit-detail' && item.id === 'units') ? 'active' : ''}`} onClick={() => setView(item.id)}>
-            <span className="icon">{item.icon}</span>
-            <span>{item.label}</span>
-            {item.badge && <span className="badge green">{item.badge}</span>}
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function ToastContainer({toasts}){
+  return(
+    <div className="toast-container">
+      {toasts.map(t=>(
+        <div key={t.id} className={`toast ${t.type||''}`}>
+          <div className="toast-icon">{t.icon||'🔔'}</div>
+          <div className="toast-content">
+            <div className="toast-title">{t.title}</div>
+            {t.msg&&<div className="toast-msg">{t.msg}</div>}
           </div>
-        ))}
-        {inWindowCount > 0 && (
-          <div style={{margin:'12px 8px 0',background:'#14532D',borderRadius:'8px',padding:'10px',fontSize:'12px'}}>
-            <div style={{color:'#86EFAC',fontWeight:700}}>✅ {inWindowCount} Unit{inWindowCount>1?'s':''} In Window</div>
-            <div style={{color:'#4ADE80',fontSize:'11px',marginTop:2}}>Conditions favorable NOW</div>
-          </div>
-        )}
-      </div>
-      <div className="agency-info">
-        <strong>USFS — Pacific Southwest</strong>
-        Region 5 · California<br/>
-        Logged in as: K. Hendricks (FMO)
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-// ─── TopBar ─────────────────────────────────────────────────────────────────
-function TopBar({view, setShowAdd}) {
-  const titles = {dashboard:'Dashboard',heatmap:'Opportunity Heat Map',calendar:'Burn Calendar',units:'Burn Units',map:'Map View',weather:'Fire Weather',aqi:'Air Quality','unit-detail':'Unit Detail',reports:'Reports'};
-  return (
-    <div className="topbar">
-      <h2>{titles[view] || 'RxFire Planner'}</h2>
-      <span className="topbar-meta">📅 Feb 24, 2026 · FEMS: Live</span>
-      <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Burn Unit</button>
-      <button className="btn btn-outline">⬇ Export</button>
-    </div>
-  );
-}
-
-// ─── Dashboard ───────────────────────────────────────────────────────────────
-function Dashboard({units, setView, setSelectedUnit}) {
-  const sorted = [...units].sort((a,b) => b.priorityScore - a.priorityScore);
-  const inWindow = units.filter(isInWindow);
-  const totalAcres = units.reduce((s,u) => s + u.acres, 0);
-  const approvedCount = units.filter(u => u.status === 'Approved').length;
-
-  return (
-    <div>
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+function Dashboard({units,setView,setSelectedUnit}){
+  const total=units.length;
+  const ready=units.filter(u=>u.status==='Ready'||u.status==='Approved').length;
+  const totalAcres=units.reduce((s,u)=>s+(u.acres||0),0);
+  const avgWindow=units.length?Math.round(units.reduce((s,u)=>s+(u.windowPct||0),0)/units.length):0;
+  const sorted=[...units].sort((a,b)=>(b.priorityScore||0)-(a.priorityScore||0));
+  return(
+    <div className="content">
       <div className="grid-4">
-        {[
-          {icon:'🔥',label:'Burn Units',val:units.length,sub:`${totalAcres.toLocaleString()} total acres`},
-          {icon:'✅',label:'In Window Today',val:inWindow.length,sub:'Conditions currently favorable',hi:inWindow.length>0},
-          {icon:'📋',label:'Approved Plans',val:approvedCount,sub:`${units.length - approvedCount} pending review`},
-          {icon:'💨',label:'Avg AQI (Region)',val:Math.round(units.reduce((s,u)=>s+u.currentCond.aqi,0)/units.length),sub:'Air quality index'}
-        ].map((k,i) => (
-          <div key={i} className="card" style={k.hi ? {borderColor:'#166534'} : {}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-              <div>
-                <div className="kpi-sub" style={{marginBottom:6}}>{k.icon} {k.label}</div>
-                <div className="kpi-val" style={k.hi ? {color:'#4ADE80'} : {}}>{k.val}</div>
-                <div className="kpi-sub" style={{marginTop:4}}>{k.sub}</div>
+        <div className="card"><div className="card-title">Total Burn Units</div><div className="stat-value">{total}</div><div className="stat-sub">Across {[...new Set(units.map(u=>u.forest))].filter(Boolean).length||6} forests</div></div>
+        <div className="card"><div className="card-title">Ready / Approved</div><div className="stat-value" style={{color:'#52B788'}}>{ready}</div><div className="stat-sub">Action-ready units</div></div>
+        <div className="card"><div className="card-title">Total Acres</div><div className="stat-value">{totalAcres.toLocaleString()}</div><div className="stat-sub">Planned treatment area</div></div>
+        <div className="card"><div className="card-title">Avg Weather Window</div><div className="stat-value">{avgWindow}%</div><div className="stat-sub">Days/year in prescription</div></div>
+      </div>
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-header"><span className="card-title">Top Priority Units</span><span style={{fontSize:11,color:'#64748B'}}>By weather constraint</span></div>
+          {sorted.slice(0,5).map((u,i)=>(
+            <div key={u.id} onClick={()=>{setSelectedUnit(u);setView('detail');}} style={{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:'1px solid #152032',cursor:'pointer'}}>
+              <div style={{width:22,height:22,borderRadius:'50%',background:'#1B4332',color:'#52B788',fontSize:11,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>{i+1}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:600,color:'#E2E8F0'}}>{u.name}</div>
+                <div style={{fontSize:10,color:'#64748B'}}>{u.forest} · {u.acres} ac · {u.windowPct}% window</div>
+              </div>
+              <div style={{textAlign:'right'}}>
+                <span className={`pill ${u.status==='Ready'?'pill-green':u.status==='Approved'?'pill-blue':u.status==='Planned'?'pill-yellow':'pill-gray'}`}>{u.status}</span>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <div className="card">
+          <div className="card-header"><span className="card-title">Monthly Opportunity Index</span></div>
+          <MonthlyBarChart units={units}/>
+        </div>
       </div>
+      <div className="card">
+        <div className="card-header"><span className="card-title">Go / No-Go Summary — Current Conditions</span></div>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+          {sorted.slice(0,6).map(u=>{
+            const checks=goNoGo(u);
+            const pass=checks.filter(c=>c.ok).length;
+            return(
+              <div key={u.id} onClick={()=>{setSelectedUnit(u);setView('detail');}} style={{background:'#152032',borderRadius:8,padding:12,cursor:'pointer',border:`1px solid ${pass===checks.length?'#2D6A4F':pass>=checks.length*0.7?'#78350F':'#7F1D1D'}`}}>
+                <div style={{fontSize:12,fontWeight:600,color:'#E2E8F0',marginBottom:4}}>{u.name}</div>
+                <div style={{fontSize:10,color:'#64748B',marginBottom:8}}>{u.unitId}</div>
+                <div style={{display:'flex',alignItems:'center',gap:6}}>
+                  <div style={{flex:1,height:6,background:'#1E3448',borderRadius:3,overflow:'hidden'}}>
+                    <div style={{width:`${(pass/checks.length)*100}%`,height:'100%',background:pass===checks.length?'#52B788':pass>=checks.length*0.7?'#F59E0B':'#F87171',borderRadius:3}}/>
+                  </div>
+                  <span style={{fontSize:11,color:'#94A3B8'}}>{pass}/{checks.length}</span>
+                  <span style={{fontSize:10,fontWeight:700,color:pass===checks.length?'#52B788':pass>=checks.length*0.7?'#F59E0B':'#F87171'}}>{pass===checks.length?'GO':'NO-GO'}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
+function MonthlyBarChart({units}){
+  const canvasRef=useRef(null);
+  const chartRef=useRef(null);
+  useEffect(()=>{
+    if(!canvasRef.current)return;
+    if(chartRef.current)chartRef.current.destroy();
+    const totals=Array(12).fill(0);
+    units.forEach(u=>{if(u.monthly)u.monthly.forEach((v,i)=>totals[i]+=v);});
+    chartRef.current=new Chart(canvasRef.current,{
+      type:'bar',
+      data:{labels:MONTHS,datasets:[{data:totals,backgroundColor:'#2D6A4F',hoverBackgroundColor:'#52B788',borderRadius:4}]},
+      options:{plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748B',font:{size:10}},grid:{display:false}},y:{ticks:{color:'#64748B',font:{size:10}},grid:{color:'#152032'}}},responsive:true,maintainAspectRatio:true}
+    });
+    return()=>{if(chartRef.current)chartRef.current.destroy();};
+  },[units]);
+  return <canvas ref={canvasRef} height={140}/>;
+}
+
+// ─── Heat Map ─────────────────────────────────────────────────────────────────
+function HeatMap({units}){
+  const [hover,setHover]=useState(null);
+  const sorted=[...units].sort((a,b)=>(b.priorityScore||0)-(a.priorityScore||0));
+  return(
+    <div className="content">
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-header"><span className="card-title">15-Year Weather Window Heat Map</span><span style={{fontSize:11,color:'#64748B'}}>% of days historically within prescription · Darker = rarer = higher priority</span></div>
+        <div style={{overflowX:'auto'}}>
+          <div className="heatmap-grid" style={{minWidth:700}}>
+            <div/>
+            {MONTHS.map(m=><div key={m} className="hm-month">{m}</div>)}
+            {sorted.map(u=>(
+              <React.Fragment key={u.id}>
+                <div className="hm-label" style={{paddingRight:8,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:55,fontSize:9}}>{u.name.split(' ').slice(0,2).join(' ')}</div>
+                {(u.monthly||Array(12).fill(0)).map((v,mi)=>(
+                  <div key={mi} className="hm-cell" style={{background:hmColor(v),color:v>40?'#0F1923':'#E2E8F0'}}
+                    onMouseEnter={()=>setHover({unit:u.name,month:MONTHS[mi],pct:v})}
+                    onMouseLeave={()=>setHover(null)}>
+                    {v>0?v:''}
+                  </div>
+                ))}
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
+        {hover&&<div style={{marginTop:12,padding:'8px 12px',background:'#152032',borderRadius:6,fontSize:12,color:'#94A3B8'}}>
+          <strong style={{color:'#E2E8F0'}}>{hover.unit}</strong> · {hover.month}: <span style={{color:'#52B788',fontWeight:700}}>{hover.pct}%</span> of days historically in prescription
+        </div>}
+      </div>
+      <div className="card">
+        <div className="card-header"><span className="card-title">Priority Legend</span></div>
+        <div style={{display:'flex',gap:4,alignItems:'center',marginBottom:8}}>
+          {[0,10,20,30,40,50,60,70,80,90,100].map(p=>(
+            <div key={p} style={{flex:1,height:20,background:hmColor(p),borderRadius:3}}/>
+          ))}
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'#64748B'}}>
+          <span>0% (No window)</span><span>50%</span><span>100% (Always open)</span>
+        </div>
+        <div style={{marginTop:8,fontSize:11,color:'#64748B'}}>Units with smaller windows (darker cells) are harder to schedule and rank higher in priority.</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Calendar ─────────────────────────────────────────────────────────────────
+function CalendarView({units}){
+  const [month,setMonth]=useState(()=>new Date().getMonth());
+  const [year,setYear]=useState(()=>new Date().getFullYear());
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const today=new Date();
+  const unitsThisMonth=units.filter(u=>u.targetMonths&&u.targetMonths.includes(month+1));
+  const windowPct=units.length?(units.reduce((s,u)=>{
+    if(u.targetMonths&&u.targetMonths.includes(month+1))return s+(u.monthly?u.monthly[month]:0);
+    return s;
+  },0)/Math.max(1,unitsThisMonth.length)):0;
+  const cells=[];
+  for(let i=0;i<firstDay;i++)cells.push({day:null});
+  for(let d=1;d<=daysInMonth;d++)cells.push({day:d});
+  return(
+    <div className="content">
       <div className="grid-2">
         <div className="card">
           <div className="card-header">
-            <span className="card-title">Priority Queue</span>
-            <button className="btn btn-outline btn-sm" onClick={() => setView('units')}>View All →</button>
+            <button className="btn btn-outline btn-sm" onClick={()=>{if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1);}}>‹</button>
+            <span style={{fontWeight:700,color:'#E2E8F0'}}>{MONTHS[month]} {year}</span>
+            <button className="btn btn-outline btn-sm" onClick={()=>{if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1);}}>›</button>
           </div>
-          {sorted.map((u, i) => {
-            const inW = isInWindow(u);
-            const pc = priorityColor(u.priorityScore);
-            const peakMonths = u.monthly.map((v,i)=>({v,i})).sort((a,b)=>b.v-a.v).slice(0,2).map(x=>MONTHS[x.i]).join('/');
-            return (
-              <div key={u.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:'1px solid #1A2B3C',cursor:'pointer'}} onClick={()=>{setSelectedUnit(u);setView('unit-detail');}}>
-                <span className={`priority-badge ${pc}`}>#{i+1}</span>
-                <div style={{flex:1}}>
-                  <div style={{fontSize:13,fontWeight:600,color:'#E2E8F0'}}>{u.name}</div>
-                  <div style={{fontSize:11,color:'#64748B'}}>{u.forest} · {u.acres} ac · Peak: {peakMonths}</div>
-                </div>
-                <div style={{textAlign:'right'}}>
-                  {inW ? <span className="info-pill pill-green">✅ IN WINDOW</span> : <span style={{fontSize:11,color:'#475569'}}>{u.windowPct}% window</span>}
-                  <div style={{fontSize:12,fontWeight:700,color:u.priorityScore>=90?'#FCA5A5':u.priorityScore>=80?'#FCD34D':'#86EFAC'}}>{u.priorityScore} pts</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="card">
-          <div className="card-header"><span className="card-title">Monthly Opportunity Overview</span></div>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(12,1fr)',gap:4,marginBottom:8}}>
-            {MONTHS.map((m,i) => {
-              const total = units.reduce((s,u) => s + (u.monthly[i] || 0), 0);
-              const avg = Math.round(total / units.length);
-              const height = Math.max(4, (avg / 30) * 80);
-              const isCurrentMonth = i === TODAY.getMonth();
-              return (
-                <div key={m} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-                  <div style={{width:'100%',height:80,display:'flex',alignItems:'flex-end'}}>
-                    <div style={{width:'100%',height:`${height}px`,background: isCurrentMonth ? '#52B788' : '#2D6A4F',borderRadius:'3px 3px 0 0',opacity:isCurrentMonth?1:.7}}/>
-                  </div>
-                  <div className="month-label" style={isCurrentMonth?{color:'#52B788'}:{}}>{m}</div>
-                  <div style={{fontSize:9,color:'#475569'}}>{avg}%</div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{fontSize:11,color:'#64748B',marginTop:8}}>Average % of days prescription conditions met across all units (15-yr historical)</div>
-
-          <div style={{marginTop:16}}>
-            <div className="card-title" style={{marginBottom:10}}>Current Conditions vs Prescription</div>
-            {inWindow.length > 0 ? (
-              inWindow.map(u => (
-                <div key={u.id} className="alert alert-green" style={{cursor:'pointer'}} onClick={()=>{setSelectedUnit(u);setView('unit-detail');}}>
-                  <span>✅</span>
-                  <div><strong>{u.name}</strong> — All parameters in prescription. <strong>GO for ignition.</strong></div>
-                </div>
-              ))
-            ) : (
-              <div className="alert alert-orange"><span>⚠️</span>No units currently in full prescription window. Next opportunities: {sorted[0].name} (check forecast).</div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-header"><span className="card-title">Unit Status Overview</span></div>
-        <table>
-          <thead><tr>
-            <th>Priority</th><th>Unit Name</th><th>Forest / District</th>
-            <th>Acres</th><th>Status</th><th>Window %</th><th>Peak Season</th><th>Today</th>
-          </tr></thead>
-          <tbody>
-            {sorted.map((u,i) => {
-              const inW = isInWindow(u);
-              const peak = u.monthly.map((v,j)=>({v,j})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>MONTHS[x.j]).join(', ');
-              return (
-                <tr key={u.id} style={{cursor:'pointer'}} onClick={()=>{setSelectedUnit(u);setView('unit-detail');}}>
-                  <td><span className={`priority-badge ${priorityColor(u.priorityScore)}`}>{i+1}</span></td>
-                  <td><div style={{fontWeight:600,color:'#E2E8F0'}}>{u.name}</div><div style={{fontSize:10,color:'#64748B'}}>{u.unitId}</div></td>
-                  <td><div>{u.forest}</div><div style={{fontSize:10,color:'#64748B'}}>{u.district}</div></td>
-                  <td>{u.acres.toLocaleString()}</td>
-                  <td><span className={`info-pill ${u.status==='Approved'?'pill-green':'pill-orange'}`}>{u.status}</span></td>
-                  <td>
-                    <div style={{display:'flex',alignItems:'center',gap:6}}>
-                      <div className="window-bar" style={{width:60}}><div className="window-fill" style={{width:`${Math.min(u.windowPct*3,100)}%`}}/></div>
-                      <span style={{fontSize:11,color:'#94A3B8'}}>{u.windowPct}%</span>
-                    </div>
-                  </td>
-                  <td style={{fontSize:12,color:'#94A3B8'}}>{peak}</td>
-                  <td>{inW ? <span className="info-pill pill-green">✅ GO</span> : <span className="info-pill pill-gray">⛔ NO-GO</span>}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-// ─── Heat Map ────────────────────────────────────────────────────────────────
-function HeatMap({units, setSelectedUnit, setView}) {
-  const sorted = [...units].sort((a,b) => b.priorityScore - a.priorityScore);
-  const [tooltip, setTooltip] = useState(null);
-  return (
-    <div>
-      <div className="card" style={{marginBottom:14}}>
-        <div style={{fontSize:13,color:'#94A3B8'}}>
-          Color intensity shows <strong style={{color:'#52B788'}}>% of days historically</strong> that prescription conditions are met for each unit and month (15-year FEMS analysis).
-          Units sorted by priority — <strong style={{color:'#FCA5A5'}}>most weather-constrained first</strong>. Use this to plan your burn season across all units.
-        </div>
-      </div>
-      <div className="card">
-        <div className="card-header">
-          <span className="card-title">Prescription Window Heat Map</span>
-          <div style={{display:'flex',gap:8,alignItems:'center',fontSize:11,color:'#64748B'}}>
-            {[['0%','#0F1923'],['1–5%','#1B4332'],['6–12%','#2D6A4F'],['13–20%','#40916C'],['21–28%','#52B788'],['29%+','#74C69D']].map(([l,c]) => (
-              <div key={l} style={{display:'flex',alignItems:'center',gap:3}}><div style={{width:16,height:16,background:c,borderRadius:3}}/>{l}</div>
-            ))}
-          </div>
-        </div>
-        <div className="heatmap-grid">
-          <div className="hm-header" style={{textAlign:'left'}}>Unit</div>
-          {MONTHS.map(m => <div key={m} className="hm-header">{m}</div>)}
-          {sorted.map(u => {
-            const inW = isInWindow(u);
-            return [
-              <div key={`${u.id}-label`} className="hm-unit" style={{borderLeft:`3px solid ${inW?'#22C55E':'transparent'}`}}>
-                <div>
-                  <div style={{fontWeight:600,color:'#E2E8F0',fontSize:11,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',maxWidth:165}}>{u.name}</div>
-                  <div style={{fontSize:9,color:'#64748B'}}>Pri #{sorted.indexOf(u)+1} · {u.windowPct}% avg window</div>
-                </div>
-              </div>,
-              ...u.monthly.map((pct, mi) => {
-                const isCurrent = mi === TODAY.getMonth();
-                return (
-                  <div key={`${u.id}-${mi}`}
-                    className="hm-cell"
-                    style={{
-                      background: hmColor(pct),
-                      border: isCurrent ? '2px solid #52B788' : '2px solid transparent',
-                      opacity: u.targetMonths.includes(mi) ? 1 : 0.45,
-                    }}
-                    title={`${u.name} · ${MONTH_FULL[mi]}: ${pct}% of days in prescription`}
-                    onMouseEnter={e => setTooltip({u, mi, pct, x: e.clientX, y: e.clientY})}
-                    onMouseLeave={() => setTooltip(null)}
-                  >
-                    {pct > 0 ? `${pct}%` : ''}
-                  </div>
-                );
-              })
-            ];
-          })}
-        </div>
-        <div style={{marginTop:12,fontSize:11,color:'#475569'}}>
-          ■ Full opacity = target season · Faded = off-season · Border = current month · Left bar = currently in window today
-        </div>
-      </div>
-      {tooltip && (
-        <div style={{position:'fixed',top:tooltip.y-80,left:tooltip.x+10,background:'#1C2D3E',border:'1px solid #40916C',borderRadius:8,padding:'10px 14px',zIndex:9999,fontSize:12,pointerEvents:'none',minWidth:200}}>
-          <div style={{fontWeight:700,color:'#E2E8F0',marginBottom:4}}>{tooltip.u.name}</div>
-          <div style={{color:'#94A3B8'}}>{MONTH_FULL[tooltip.mi]}: <span style={{color:hmColor(tooltip.pct+15),fontWeight:700}}>{tooltip.pct}%</span> of days in prescription</div>
-          <div style={{color:'#64748B',marginTop:4,fontSize:11}}>Based on 15 years of FEMS station data</div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Calendar ────────────────────────────────────────────────────────────────
-function CalendarView({units}) {
-  const [month, setMonth] = useState(TODAY.getMonth());
-  const [year, setYear] = useState(TODAY.getFullYear());
-  const [selectedDay, setSelectedDay] = useState(null);
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month+1, 0).getDate();
-  const daysInPrev = new Date(year, month, 0).getDate();
-
-  function unitsForDay(dayOfMonth) {
-    const d = new Date(year, month, dayOfMonth);
-    return units.filter(u => {
-      const prob = u.monthly[month] || 0;
-      const seed = (u.id * 7 + dayOfMonth * 13) % 100;
-      return seed < prob && u.targetMonths.includes(month);
-    });
-  }
-
-  const cells = [];
-  for (let i = 0; i < firstDay; i++) cells.push({day: daysInPrev - firstDay + 1 + i, type:'prev'});
-  for (let i = 1; i <= daysInMonth; i++) cells.push({day:i, type:'current'});
-  let next = 1;
-  while (cells.length % 7 !== 0) cells.push({day: next++, type:'next'});
-
-  const selectedUnits = selectedDay ? unitsForDay(selectedDay) : [];
-
-  return (
-    <div>
-      <div className="card" style={{marginBottom:14}}>
-        <div style={{display:'flex',alignItems:'center',gap:16}}>
-          <button className="btn btn-outline btn-sm" onClick={() => { if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1); }}>◀ Prev</button>
-          <div style={{flex:1,textAlign:'center',fontSize:18,fontWeight:700,color:'#E2E8F0'}}>{MONTH_FULL[month]} {year}</div>
-          <button className="btn btn-outline btn-sm" onClick={() => { if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1); }}>Next ▶</button>
-        </div>
-      </div>
-      <div className="grid-2" style={{alignItems:'start'}}>
-        <div className="card">
           <div className="cal-grid">
-            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d} className="cal-header">{d}</div>)}
-            {cells.map((cell, i) => {
-              const dayUnits = cell.type === 'current' ? unitsForDay(cell.day) : [];
-              const isToday = cell.type==='current' && cell.day===TODAY.getDate() && month===TODAY.getMonth() && year===TODAY.getFullYear();
-              const isSelected = cell.type==='current' && cell.day===selectedDay;
-              const bgInt = dayUnits.length;
-              const bgColor = bgInt === 0 ? '#152030' : bgInt === 1 ? '#1B4332' : bgInt <= 3 ? '#2D6A4F' : '#40916C';
-              return (
-                <div key={i}
-                  className={`cal-day ${isToday?'today':''} ${cell.type!=='current'?'other-month':''}`}
-                  style={{background: cell.type==='current' ? bgColor : '#0F1923', border: isSelected ? '2px solid #52B788' : '', cursor: cell.type==='current'?'pointer':'default'}}
-                  onClick={() => cell.type==='current' && setSelectedDay(cell.day)}
-                >
-                  <div className="cal-day-num" style={isToday?{color:'#52B788'}:{}}>{cell.day}</div>
-                  <div className="cal-units">
-                    {dayUnits.slice(0,3).map(u => (
-                      <div key={u.id} className="cal-unit-chip" style={{background:'#166534',color:'#86EFAC'}}>{u.name.split(' ').slice(0,2).join(' ')}</div>
-                    ))}
-                    {dayUnits.length > 3 && <div style={{fontSize:9,color:'#64748B'}}>+{dayUnits.length-3} more</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{marginTop:12,display:'flex',gap:10,fontSize:11,color:'#64748B'}}>
-            {[[0,'#152030','No units'],[1,'#1B4332','1 unit'],[3,'#2D6A4F','2–3 units'],[5,'#40916C','4+ units']].map(([,c,l]) => (
-              <div key={l} style={{display:'flex',alignItems:'center',gap:4}}><div style={{width:12,height:12,background:c,borderRadius:2}}/>{l}</div>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          {selectedDay ? (
-            <div className="card">
-              <div style={{fontSize:15,fontWeight:700,color:'#E2E8F0',marginBottom:12}}>
-                {MONTH_FULL[month]} {selectedDay}, {year}
-                {selectedDay===TODAY.getDate()&&month===TODAY.getMonth()&&year===TODAY.getFullYear() && <span className="info-pill pill-green" style={{marginLeft:8}}>Today</span>}
-              </div>
-              {selectedUnits.length > 0 ? (
-                <>
-                  <div style={{fontSize:12,color:'#52B788',marginBottom:10,fontWeight:600}}>✅ {selectedUnits.length} unit{selectedUnits.length>1?'s':''} historically in prescription window</div>
-                  {selectedUnits.map(u => (
-                    <div key={u.id} style={{padding:'10px',background:'#152030',borderRadius:8,marginBottom:8,border:'1px solid #1E3448'}}>
-                      <div style={{fontWeight:600,color:'#E2E8F0',fontSize:13}}>{u.name}</div>
-                      <div style={{fontSize:11,color:'#64748B',marginTop:2}}>{u.forest} · {u.acres} ac · Window: {u.monthly[month]}% historically</div>
-                      <div style={{marginTop:8,display:'flex',flexWrap:'wrap',gap:4}}>
-                        <span className="info-pill pill-blue">Temp: {u.rx.tempMin}–{u.rx.tempMax}°F</span>
-                        <span className="info-pill pill-blue">RH: {u.rx.rhMin}–{u.rx.rhMax}%</span>
-                        <span className="info-pill pill-blue">Wind: {u.rx.windMin}–{u.rx.windMax} mph</span>
-                      </div>
-                    </div>
-                  ))}
-                </>
-              ) : (
-                <div style={{color:'#64748B',fontSize:13,padding:'20px 0',textAlign:'center'}}>No units historically in prescription window on this date.</div>
-              )}
-            </div>
-          ) : (
-            <div className="card">
-              <div style={{color:'#64748B',fontSize:13,textAlign:'center',padding:'40px 20px'}}>
-                <div style={{fontSize:32,marginBottom:12}}>📅</div>
-                Click a day on the calendar to see which burn units are historically in prescription window.
-              </div>
-            </div>
-          )}
-
-          <div className="card" style={{marginTop:14}}>
-            <div className="card-title" style={{marginBottom:10}}>Units with Target Season This Month</div>
-            {units.filter(u => u.targetMonths.includes(month)).length > 0 ? (
-              units.filter(u => u.targetMonths.includes(month)).map(u => (
-                <div key={u.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid #1A2B3C',fontSize:12}}>
-                  <div>
-                    <span style={{color:'#E2E8F0',fontWeight:600}}>{u.name}</span>
-                    <div style={{color:'#64748B',fontSize:11}}>{u.monthly[month]}% window · Priority #{[...units].sort((a,b)=>b.priorityScore-a.priorityScore).indexOf(u)+1}</div>
-                  </div>
-                  <span className={`info-pill ${u.monthly[month]>15?'pill-green':u.monthly[month]>5?'pill-orange':'pill-red'}`}>{u.monthly[month]}%</span>
-                </div>
-              ))
-            ) : (
-              <div style={{color:'#64748B',fontSize:12}}>No units target {MONTH_FULL[month]} as a burn season.</div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Unit Detail ─────────────────────────────────────────────────────────────
-function UnitDetail({unit, setView, onDelete}) {
-  const [tab, setTab] = useState('gonogo');
-  const chartRef = useRef(null);
-  const chartInst = useRef(null);
-  const inW = isInWindow(unit);
-  const c = unit.currentCond;
-  const r = unit.rx;
-
-  const params = [
-    {label:'Temperature',min:r.tempMin,max:r.tempMax,val:c.temp,unit:'°F'},
-    {label:'Relative Humidity',min:r.rhMin,max:r.rhMax,val:c.rh,unit:'%'},
-    {label:'Wind Speed (20 ft)',min:r.windMin,max:r.windMax,val:c.wind,unit:'mph'},
-    {label:'10-hr Fuel Moisture',min:r.fm10Min,max:r.fm10Max,val:c.fm10,unit:'%'},
-    {label:'100-hr Fuel Moisture',min:undefined,max:r.fm100Max,val:c.fm100,unit:'%'},
-    {label:'Haines Index',min:undefined,max:r.hainesMax,val:c.haines,unit:''},
-    {label:'ERC',min:r.ercMin,max:r.ercMax,val:c.erc,unit:''},
-    {label:'Mixing Height',min:r.mixHt,max:undefined,val:c.mixHt,unit:'ft'},
-    {label:'Transport Wind',min:r.transport,max:undefined,val:c.transport,unit:'mph'},
-    {label:'Air Quality (AQI)',min:undefined,max:100,val:c.aqi,unit:''},
-  ];
-
-  useEffect(() => {
-    if (tab !== 'window' || !chartRef.current) return;
-    if (chartInst.current) chartInst.current.destroy();
-    chartInst.current = new Chart(chartRef.current, {
-      type:'bar',
-      data:{
-        labels: MONTHS,
-        datasets:[{
-          label:'% Days in Prescription Window',
-          data: unit.monthly,
-          backgroundColor: unit.monthly.map((v,i) => unit.targetMonths.includes(i) ? 'rgba(82,183,136,0.8)' : 'rgba(82,183,136,0.25)'),
-          borderColor: unit.monthly.map((v,i) => i === TODAY.getMonth() ? '#F59E0B' : 'transparent'),
-          borderWidth: 2,
-        }]
-      },
-      options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.raw}% of days`}}},scales:{y:{max:35,ticks:{color:'#64748B'},grid:{color:'#1E3448'}},x:{ticks:{color:'#64748B'},grid:{display:false}}}}
-    });
-    return () => chartInst.current?.destroy();
-  }, [tab, unit]);
-
-  return (
-    <div>
-      <div className="card" style={{marginBottom:14}}>
-        <div className="detail-header">
-          <div>
-            <div style={{display:'flex',gap:8,marginBottom:10}}>
-              <button className="btn btn-outline btn-sm" onClick={() => setView('units')}>← Back to Units</button>
-              {onDelete && <button className="btn btn-danger btn-sm" onClick={() => onDelete(unit.id)}>🗑 Delete Unit</button>}
-            </div>
-            <div className="detail-title">{unit.name}</div>
-            <div className="detail-sub">{unit.unitId} · {unit.forest}, {unit.district} · {unit.acres} acres</div>
-            <div style={{marginTop:10}}>
-              <span className={`info-pill ${unit.status==='Approved'?'pill-green':'pill-orange'}`}>{unit.status}</span>
-              <span className={`info-pill ${priorityColor(unit.priorityScore)==='p-critical'?'pill-red':priorityColor(unit.priorityScore)==='p-high'?'pill-orange':'pill-blue'}`}>Priority: {priorityLabel(unit.priorityScore)}</span>
-              <span className="info-pill pill-gray">Window: {unit.windowPct}% of days</span>
-              <span className="info-pill pill-gray">Complexity: {unit.complexity}</span>
-              {inW && <span className="info-pill pill-green" style={{fontSize:13,padding:'6px 14px'}}>✅ IN WINDOW TODAY — GO FOR IGNITION</span>}
-            </div>
-          </div>
-          <div style={{textAlign:'right'}}>
-            <div style={{fontSize:36,fontWeight:800,color: unit.priorityScore>=90?'#FCA5A5':unit.priorityScore>=80?'#FCD34D':'#86EFAC'}}>{unit.priorityScore}</div>
-            <div style={{fontSize:11,color:'#64748B'}}>Priority Score</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="tabs">
-        {[['gonogo','Go/No-Go Checker'],['prescription','Prescription (PMS 484-1)'],['window','Weather Window Analysis'],['smoke','Smoke Management'],['objectives','Objectives & Area']].map(([id,label]) => (
-          <div key={id} className={`tab ${tab===id?'active':''}`} onClick={() => setTab(id)}>{label}</div>
-        ))}
-      </div>
-
-      {tab === 'gonogo' && (
-        <div className="card">
-          <div className={`alert ${inW?'alert-green':'alert-red'}`} style={{fontSize:14,fontWeight:700,marginBottom:16}}>
-            {inW ? '✅ ALL PARAMETERS IN PRESCRIPTION — GO FOR IGNITION' : '⛔ ONE OR MORE PARAMETERS OUTSIDE PRESCRIPTION — NO GO'}
-          </div>
-          <div style={{marginBottom:8,display:'grid',gridTemplateColumns:'180px 130px 130px 110px 60px',gap:8,fontSize:11,fontWeight:600,color:'#475569',padding:'6px 0',borderBottom:'2px solid #1E3448'}}>
-            <span>Parameter</span><span>Prescription Min</span><span>Prescription Max</span><span>Current Value</span><span>Status</span>
-          </div>
-          {params.map(p => {
-            const status = checkParam(p.val, p.min, p.max);
-            return (
-              <div key={p.label} className="param-row">
-                <span className="param-label">{p.label}</span>
-                <span className="param-range">{p.min !== undefined ? `${p.min}${p.unit}` : '—'}</span>
-                <span className="param-range">{p.max !== undefined ? `${p.max}${p.unit}` : '—'}</span>
-                <span className={`param-current ${status==='go'?'go':status==='nogo'?'nogo':'marginal'}`}>{p.val}{p.unit}</span>
-                <span style={{fontSize:18}}>{status==='go'?'✅':status==='nogo'?'❌':'⚠️'}</span>
-              </div>
-            );
-          })}
-          <div style={{marginTop:16,padding:'12px',background:'#0F1923',borderRadius:8,fontSize:12,color:'#64748B'}}>
-            <div style={{fontWeight:600,color:'#94A3B8',marginBottom:6}}>PMS 484-1 Element 2B — Prescribed Fire Go/No-Go Checklist</div>
-            {['All permits and clearances obtained','All required notifications made','Pre-burn preparation completed','Current and projected fire weather forecast obtained and favorable',
-              'All prescription parameters met','Smoke management specifications met','All personnel and equipment on-site','Contingency resources available','All personnel briefed'].map((item,i) => (
-              <div key={i} style={{display:'flex',gap:8,padding:'4px 0',borderBottom:'1px solid #1E3448'}}>
-                <span>{inW ? '✅' : (i < 4 ? '✅' : i === 4 ? '❌' : '✅')}</span>
-                <span>{item}</span>
+            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=><div key={d} className="cal-header">{d}</div>)}
+            {cells.map((c,i)=>(
+              <div key={i} className={`cal-day ${c.day&&windowPct>15?'has-window':''} ${c.day===today.getDate()&&month===today.getMonth()&&year===today.getFullYear()?'today':''} ${!c.day?'other-month':''}`}>
+                {c.day&&<span style={{fontSize:11}}>{c.day}</span>}
+                {c.day&&windowPct>15&&<div style={{width:4,height:4,borderRadius:'50%',background:'#52B788',marginTop:1}}/>}
               </div>
             ))}
           </div>
         </div>
-      )}
-
-      {tab === 'prescription' && (
-        <div>
-          <div className="card" style={{marginBottom:14}}>
-            <div className="section-title">Element 7B — Prescription Parameters</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-              {[
-                ['Temperature',`${r.tempMin}–${r.tempMax}°F`],['Relative Humidity',`${r.rhMin}–${r.rhMax}%`],
-                ['Wind Speed (20 ft)',`${r.windMin}–${r.windMax} mph`],['Wind Direction',r.windDir],
-                ['1-hr Fuel Moisture',`${r.fm1Min}–${r.fm1Max}%`],['10-hr Fuel Moisture',`${r.fm10Min}–${r.fm10Max}%`],
-                ['100-hr Fuel Moisture',`Max ${r.fm100Max}%`],['1000-hr Fuel Moisture',`Max ${r.fm1000Max}%`],
-                ['Live Fuel Moisture',`Min ${r.liveFmMin}%`],['Haines Index',`Max ${r.hainesMax}`],
-                ['Energy Release Component (ERC)',`${r.ercMin}–${r.ercMax}`],['Mixing Height',`Min ${r.mixHt.toLocaleString()} ft`],
-                ['Transport Wind Speed',`Min ${r.transport} mph`],['Max Flame Length',`${r.flameLenMax} ft`],
-              ].map(([label, val]) => (
-                <div key={label} style={{padding:'10px',background:'#152030',borderRadius:6,border:'1px solid #1E3448'}}>
-                  <div style={{fontSize:11,color:'#64748B',marginBottom:3}}>{label}</div>
-                  <div style={{fontSize:15,fontWeight:700,color:'#E2E8F0'}}>{val}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="card">
-            <div className="section-title">Element 8 — Scheduling</div>
-            <div style={{fontSize:13,color:'#94A3B8',marginBottom:10}}>Target Burn Months:</div>
-            <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-              {MONTHS.map((m,i) => (
-                <div key={m} style={{padding:'6px 14px',borderRadius:20,fontSize:12,fontWeight:600,
-                  background: unit.targetMonths.includes(i) ? '#1B4332' : '#1E3448',
-                  color: unit.targetMonths.includes(i) ? '#52B788' : '#475569',
-                  border: i===TODAY.getMonth() ? '2px solid #F59E0B' : '2px solid transparent'}}>
-                  {m}
-                </div>
-              ))}
-            </div>
-            <div style={{marginTop:14,fontSize:13,color:'#64748B'}}>Burn Boss: <span style={{color:'#94A3B8',fontWeight:600}}>{unit.burnBoss}</span> · Complexity Rating: <span style={{color:'#94A3B8',fontWeight:600}}>{unit.complexity}</span></div>
-          </div>
-        </div>
-      )}
-
-      {tab === 'window' && (
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">15-Year Historical Window Analysis — FEMS Station Data</span>
-          </div>
-          <div style={{marginBottom:14,display:'flex',gap:12}}>
-            {[['Overall Window',`${unit.windowPct}% of days`],['Best Month',MONTHS[unit.monthly.indexOf(Math.max(...unit.monthly))]],['Peak Probability',`${Math.max(...unit.monthly)}%`]].map(([l,v]) => (
-              <div key={l} style={{padding:'12px 16px',background:'#152030',borderRadius:8,border:'1px solid #1E3448'}}>
-                <div style={{fontSize:11,color:'#64748B'}}>{l}</div>
-                <div style={{fontSize:18,fontWeight:700,color:'#52B788'}}>{v}</div>
+          <div className="card-header"><span className="card-title">Units Targeting {MONTHS[month]}</span></div>
+          {unitsThisMonth.length===0&&<div style={{fontSize:12,color:'#64748B',padding:'20px 0',textAlign:'center'}}>No units targeting this month</div>}
+          {unitsThisMonth.map(u=>(
+            <div key={u.id} style={{padding:'10px 0',borderBottom:'1px solid #152032'}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                <span style={{fontSize:12,fontWeight:600,color:'#E2E8F0'}}>{u.name}</span>
+                <span className={`pill ${u.status==='Ready'?'pill-green':u.status==='Approved'?'pill-blue':'pill-yellow'}`}>{u.status}</span>
               </div>
-            ))}
-          </div>
-          <div className="month-chart-wrap" style={{height:200}}>
-            <canvas ref={chartRef}/>
-          </div>
-          <div style={{marginTop:8,fontSize:11,color:'#475569'}}>
-            ■ Darker bars = target season · Yellow border = current month (Feb) · Based on 15 years of FEMS station {unit.forest} observations
-          </div>
-        </div>
-      )}
-
-      {tab === 'smoke' && (
-        <div className="card">
-          <div className="section-title">Element 19 — Smoke Management & Air Quality</div>
-          {[['Air Basin',unit.smoke.airBasin],['Permit Required',unit.smoke.permitReq?'YES — Permit required prior to ignition':'No permit required'],
-            ['Smoke-Sensitive Receptors',unit.smoke.receptors],['Current AQI',`${c.aqi} — ${aqiCategory(c.aqi).label}`],
-            ['Mitigation Strategies',unit.smoke.mitigation]].map(([l,v]) => (
-            <div key={l} style={{padding:'12px',background:'#152030',borderRadius:6,border:'1px solid #1E3448',marginBottom:10}}>
-              <div style={{fontSize:11,color:'#64748B',marginBottom:3}}>{l}</div>
-              <div style={{fontSize:13,color: l==='Permit Required'&&unit.smoke.permitReq?'#FCA5A5':l.includes('AQI')?aqiCategory(c.aqi).color:'#E2E8F0',fontWeight:l==='Permit Required'?700:400}}>{v}</div>
+              <div style={{fontSize:10,color:'#64748B'}}>{u.forest} · {u.acres} ac · {u.monthly?u.monthly[month]:0}% window this month</div>
+              <div style={{marginTop:6,height:4,background:'#1E3448',borderRadius:2,overflow:'hidden'}}>
+                <div style={{width:`${u.monthly?u.monthly[month]:0}%`,height:'100%',background:'#52B788',borderRadius:2}}/>
+              </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {tab === 'objectives' && (
-        <div>
-          <div className="card" style={{marginBottom:14}}>
-            <div className="section-title">Element 4 — Description of Prescribed Fire Area</div>
-            <div style={{fontSize:13,color:'#94A3B8',marginBottom:4}}>Location:</div>
-            <div style={{fontSize:13,color:'#E2E8F0',marginBottom:12}}>{unit.forest}, {unit.district} · Lat {unit.lat.toFixed(3)}°N, Lon {unit.lon.toFixed(3)}°W</div>
-            <div style={{fontSize:13,color:'#94A3B8',marginBottom:4}}>Fuels Description:</div>
-            <div style={{fontSize:13,color:'#E2E8F0'}}>{unit.fuels}</div>
-          </div>
-          <div className="card">
-            <div className="section-title">Element 5 — Objectives</div>
-            <div style={{fontSize:13,color:'#E2E8F0',lineHeight:1.6}}>{unit.objectives}</div>
+          <div style={{marginTop:14,padding:'10px 12px',background:'#152032',borderRadius:8}}>
+            <div style={{fontSize:11,color:'#64748B',marginBottom:4}}>Avg window for {MONTHS[month]}</div>
+            <div style={{fontSize:22,fontWeight:700,color:'#52B788'}}>{Math.round(windowPct)}%</div>
+            <div style={{fontSize:10,color:'#64748B'}}>of days historically in-prescription</div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
+}
+
+// ─── Agency badge colors ──────────────────────────────────────────────────────
+const AGENCY_COLORS={
+  'USFS':    {bg:'#1B3A2D',color:'#52B788',border:'#2D6A4F'},
+  'CAL FIRE':{bg:'#3B1515',color:'#FCA5A5',border:'#7F1D1D'},
+  'LG':      {bg:'#1A2A3F',color:'#93C5FD',border:'#1E3A5F'},
+  'WFS':     {bg:'#2D2510',color:'#FCD34D',border:'#78350F'},
+  'NPS':     {bg:'#1C2D20',color:'#86EFAC',border:'#166534'},
+  'BLM':     {bg:'#2A1F10',color:'#FB923C',border:'#92400E'},
+  'BIA':     {bg:'#1E1A30',color:'#C4B5FD',border:'#4C1D95'},
+  'Tribal':  {bg:'#2A1520',color:'#F9A8D4',border:'#831843'},
+};
+function AgencyBadge({agency}){
+  const s=AGENCY_COLORS[agency]||{bg:'#1E2D3E',color:'#94A3B8',border:'#2D4057'};
+  return<span style={{display:'inline-block',padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:700,background:s.bg,color:s.color,border:`1px solid ${s.border}`}}>{agency}</span>;
 }
 
 // ─── Burn Units Table ─────────────────────────────────────────────────────────
-function BurnUnitsTable({units, setSelectedUnit, setView}) {
-  const [filter, setFilter] = useState('all');
-  const [search, setSearch] = useState('');
-  let filtered = [...units].sort((a,b) => b.priorityScore - a.priorityScore);
-  if (filter === 'window') filtered = filtered.filter(isInWindow);
-  if (filter === 'approved') filtered = filtered.filter(u => u.status === 'Approved');
-  if (search) filtered = filtered.filter(u => u.name.toLowerCase().includes(search.toLowerCase()) || u.forest.toLowerCase().includes(search.toLowerCase()));
-  return (
-    <div>
-      <div className="card" style={{marginBottom:14}}>
-        <div style={{display:'flex',gap:10,alignItems:'center'}}>
-          <input placeholder="🔍 Search units..." value={search} onChange={e=>setSearch(e.target.value)} style={{background:'#0F1923',border:'1px solid #2D4057',borderRadius:6,padding:'7px 12px',color:'#E2E8F0',fontSize:13,flex:1}}/>
-          {['all','window','approved'].map(f => (
-            <button key={f} className={`btn ${filter===f?'btn-primary':'btn-outline'} btn-sm`} onClick={() => setFilter(f)}>
-              {f==='all'?'All Units':f==='window'?'✅ In Window':'Approved Only'}
-            </button>
-          ))}
+function BurnUnitsTable({units,setSelectedUnit,setView,onAdd,onDelete}){
+  const [sort,setSort]=useState('priority');
+  const [filter,setFilter]=useState('');
+  const [agencyFilter,setAgencyFilter]=useState('All');
+  const QUICK_AGENCIES=['USFS','CAL FIRE','LG','WFS'];
+  let sorted=[...units];
+  if(sort==='priority')sorted.sort((a,b)=>(b.priorityScore||0)-(a.priorityScore||0));
+  else if(sort==='name')sorted.sort((a,b)=>a.name.localeCompare(b.name));
+  else if(sort==='acres')sorted.sort((a,b)=>(b.acres||0)-(a.acres||0));
+  else if(sort==='window')sorted.sort((a,b)=>(a.windowPct||0)-(b.windowPct||0));
+  if(agencyFilter!=='All')sorted=sorted.filter(u=>u.agency===agencyFilter);
+  if(filter)sorted=sorted.filter(u=>u.name.toLowerCase().includes(filter.toLowerCase())||u.forest.toLowerCase().includes(filter.toLowerCase())||(u.unitId||'').toLowerCase().includes(filter.toLowerCase()));
+  return(
+    <div className="content">
+      <div style={{display:'flex',gap:10,marginBottom:14,alignItems:'center',flexWrap:'wrap'}}>
+        <input className="form-input" style={{maxWidth:200}} placeholder="Search units..." value={filter} onChange={e=>setFilter(e.target.value)}/>
+        <select className="form-select" style={{width:150}} value={agencyFilter} onChange={e=>setAgencyFilter(e.target.value)}>
+          <option value="All">All Agencies</option>
+          <option value="USFS">USFS</option>
+          <option value="CAL FIRE">CAL FIRE</option>
+          <option value="LG">LG</option>
+          <option value="WFS">WFS</option>
+          <option value="NPS">NPS</option>
+          <option value="BLM">BLM</option>
+          <option value="BIA">BIA</option>
+          <option value="Tribal">Tribal</option>
+        </select>
+        <select className="form-select" style={{width:148}} value={sort} onChange={e=>setSort(e.target.value)}>
+          <option value="priority">Sort: Priority</option>
+          <option value="window">Sort: Window %</option>
+          <option value="acres">Sort: Acres</option>
+          <option value="name">Sort: Name</option>
+        </select>
+        <div style={{display:'flex',gap:5}}>
+          {QUICK_AGENCIES.map(a=>{
+            const active=agencyFilter===a;
+            const s=AGENCY_COLORS[a]||{};
+            return(
+              <div key={a} onClick={()=>setAgencyFilter(active?'All':a)}
+                style={{padding:'3px 10px',borderRadius:20,fontSize:10,fontWeight:700,cursor:'pointer',transition:'all .15s',
+                  background:active?s.bg:'#152032',color:active?s.color:'#475569',
+                  border:`1px solid ${active?s.border:'#1E3448'}`}}>
+                {a}
+              </div>
+            );
+          })}
         </div>
+        <div style={{marginLeft:'auto',fontSize:11,color:'#64748B'}}>{sorted.length} unit{sorted.length!==1?'s':''}</div>
       </div>
-      <div className="card">
+      <div className="card" style={{padding:0,overflow:'hidden'}}>
         <table>
-          <thead><tr>
-            <th>#</th><th>Unit Name</th><th>Forest / District</th><th>Acres</th>
-            <th>Status</th><th>Priority</th><th>Window %</th><th>Peak Season</th><th>Today</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th>Priority</th><th>Unit Name</th><th>ID</th><th>Agency</th><th>Forest / District</th>
+              <th>Acres</th><th>Weather Window</th><th>Status</th><th>Burn Boss</th><th></th>
+            </tr>
+          </thead>
           <tbody>
-            {filtered.map((u,i) => {
-              const inW = isInWindow(u);
-              const peak = u.monthly.map((v,j)=>({v,j})).sort((a,b)=>b.v-a.v).slice(0,3).map(x=>MONTHS[x.j]).join(', ');
-              return (
-                <tr key={u.id} style={{cursor:'pointer'}} onClick={()=>{setSelectedUnit(u);setView('unit-detail');}}>
-                  <td><span className={`priority-badge ${priorityColor(u.priorityScore)}`}>{u.priorityScore>=90?'🔴':u.priorityScore>=80?'🟠':'🟡'}{i+1}</span></td>
-                  <td><div style={{fontWeight:600,color:'#E2E8F0'}}>{u.name}</div><div style={{fontSize:10,color:'#64748B'}}>{u.unitId}</div></td>
-                  <td><div style={{fontSize:12}}>{u.forest}</div><div style={{fontSize:10,color:'#64748B'}}>{u.district}</div></td>
-                  <td style={{fontWeight:600}}>{u.acres.toLocaleString()}</td>
-                  <td><span className={`info-pill ${u.status==='Approved'?'pill-green':'pill-orange'}`}>{u.status}</span></td>
+            {sorted.map((u,i)=>{
+              const score=u.priorityScore||0;
+              return(
+                <tr key={u.id} onClick={()=>{setSelectedUnit(u);setView('detail');}}>
                   <td>
-                    <div style={{fontWeight:700,color:u.priorityScore>=90?'#FCA5A5':u.priorityScore>=80?'#FCD34D':'#86EFAC'}}>{u.priorityScore}</div>
-                    <div style={{fontSize:10,color:'#64748B'}}>{priorityLabel(u.priorityScore)}</div>
-                  </td>
-                  <td>
-                    <div style={{display:'flex',alignItems:'center',gap:6}}>
-                      <div className="window-bar" style={{width:50}}><div className="window-fill" style={{width:`${Math.min(u.windowPct*3.3,100)}%`}}/></div>
-                      <span style={{fontSize:11}}>{u.windowPct}%</span>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <div style={{width:24,height:24,borderRadius:'50%',background:score>=80?'#1B4332':score>=60?'#78350F':'#1E3448',color:score>=80?'#52B788':score>=60?'#FCD34D':'#94A3B8',fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>{i+1}</div>
+                      <div className="priority-bar" style={{width:50}}><div className="priority-fill" style={{width:`${score}%`,background:score>=80?'#52B788':score>=60?'#F59E0B':'#60A5FA'}}/></div>
+                      <span style={{fontSize:11,color:'#64748B'}}>{score}</span>
                     </div>
                   </td>
-                  <td style={{fontSize:11,color:'#94A3B8'}}>{peak}</td>
-                  <td>{inW ? <span className="info-pill pill-green">✅ GO</span> : <span className="info-pill pill-gray">⛔</span>}</td>
+                  <td><span style={{fontWeight:600,color:'#E2E8F0'}}>{u.name}</span></td>
+                  <td><span style={{fontFamily:'monospace',fontSize:11,color:'#64748B'}}>{u.unitId}</span></td>
+                  <td><AgencyBadge agency={u.agency}/></td>
+                  <td><div>{u.forest}</div><div style={{fontSize:10,color:'#64748B'}}>{u.district}</div></td>
+                  <td>{(u.acres||0).toLocaleString()}</td>
+                  <td>
+                    <div style={{display:'flex',alignItems:'center',gap:6}}>
+                      <div style={{width:50,height:6,background:'#1E3448',borderRadius:3,overflow:'hidden'}}>
+                        <div style={{width:`${u.windowPct||0}%`,height:'100%',background:hmColor(u.windowPct||0),borderRadius:3}}/>
+                      </div>
+                      <span style={{fontSize:11,color:'#94A3B8'}}>{u.windowPct||0}%</span>
+                    </div>
+                  </td>
+                  <td><span className={`pill ${u.status==='Ready'?'pill-green':u.status==='Approved'?'pill-blue':u.status==='Planned'?'pill-yellow':'pill-gray'}`}>{u.status}</span></td>
+                  <td style={{color:'#94A3B8'}}>{u.burnBoss||'—'}</td>
+                  <td onClick={e=>{e.stopPropagation();if(confirm('Delete this unit?'))onDelete(u.id);}}>
+                    <span style={{fontSize:16,cursor:'pointer',color:'#475569'}}>🗑</span>
+                  </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
-        {filtered.length === 0 && <div style={{padding:'30px',textAlign:'center',color:'#475569'}}>No units match your filter.</div>}
       </div>
+    </div>
+  );
+}
+
+// ─── Go / No-Go logic ─────────────────────────────────────────────────────────
+function goNoGo(unit){
+  const c=unit.currentCond||{};
+  const r=unit.rx||{};
+  return[
+    {label:'Temperature',value:`${c.temp||'—'}°F`,ok:c.temp>=r.tempMin&&c.temp<=r.tempMax,target:`${r.tempMin}–${r.tempMax}°F`},
+    {label:'Relative Humidity',value:`${c.rh||'—'}%`,ok:c.rh>=r.rhMin&&c.rh<=r.rhMax,target:`${r.rhMin}–${r.rhMax}%`},
+    {label:'Wind Speed',value:`${c.wind||'—'} mph`,ok:c.wind>=r.windMin&&c.wind<=r.windMax,target:`${r.windMin}–${r.windMax} mph`},
+    {label:'10-hr Fuel Moisture',value:`${c.fm10||'—'}%`,ok:c.fm10<=r.fm10Max,target:`≤${r.fm10Max}%`},
+    {label:'100-hr Fuel Moisture',value:`${c.fm100||'—'}%`,ok:c.fm100<=r.fm100Max,target:`≤${r.fm100Max}%`},
+    {label:'Haines Index',value:`${c.haines||'—'}`,ok:c.haines<=r.hainesMax,target:`≤${r.hainesMax}`},
+    {label:'Energy Release Comp.',value:`${c.erc||'—'}`,ok:c.erc<=r.ercMax,target:`≤${r.ercMax}`},
+    {label:'Air Quality Index',value:`${c.aqi||'—'}`,ok:c.aqi<=r.aqiMax,target:`≤${r.aqiMax}`},
+  ];
+}
+
+// ─── Unit Detail ──────────────────────────────────────────────────────────────
+function UnitDetail({unit,onBack,onStatusChange}){
+  const [status,setStatus]=useState(unit.status);
+  const [saving,setSaving]=useState(false);
+  const checks=goNoGo({...unit,status});
+  const pass=checks.filter(c=>c.ok).length;
+  const isGo=pass===checks.length;
+  async function handleStatusChange(newStatus){
+    setStatus(newStatus);
+    setSaving(true);
+    try{await onStatusChange(unit.id,newStatus);}finally{setSaving(false);}
+  }
+  return(
+    <div className="content">
+      <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:16}}>
+        <button className="btn btn-outline btn-sm" onClick={onBack}>← Back</button>
+        <h2 style={{fontSize:16,fontWeight:700,color:'#E2E8F0',flex:1}}>{unit.name}</h2>
+        <div style={{display:'flex',alignItems:'center',gap:6}}>
+          <select className="form-select" style={{width:130,padding:'5px 8px',fontSize:12,fontWeight:600,
+            color:status==='Ready'?'#52B788':status==='Approved'?'#93C5FD':status==='Planned'?'#FCD34D':'#94A3B8',
+            borderColor:status==='Ready'?'#2D6A4F':status==='Approved'?'#1E3A5F':'#2D4057'}}
+            value={status} onChange={e=>handleStatusChange(e.target.value)} disabled={saving}>
+            <option value="Draft">Draft</option>
+            <option value="Planned">Planned</option>
+            <option value="Approved">Approved</option>
+            <option value="Ready">Ready</option>
+            <option value="Completed">Completed</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+          {saving&&<span style={{fontSize:11,color:'#64748B'}}>Saving…</span>}
+        </div>
+        <div style={{padding:'6px 14px',borderRadius:6,background:isGo?'#1B4332':'#7F1D1D',color:isGo?'#52B788':'#FCA5A5',fontWeight:700,fontSize:13}}>
+          {isGo?'✅ GO':'⛔ NO-GO'} · {pass}/{checks.length} checks
+        </div>
+      </div>
+      <div className="grid-3" style={{marginBottom:16}}>
+        <div className="card"><div className="card-title">Unit ID</div><div style={{fontSize:14,fontWeight:700,color:'#E2E8F0',marginTop:4}}>{unit.unitId}</div><div style={{fontSize:11,color:'#64748B',marginTop:2}}>{unit.forest} · {unit.district}</div></div>
+        <div className="card"><div className="card-title">Size & Complexity</div><div style={{fontSize:14,fontWeight:700,color:'#E2E8F0',marginTop:4}}>{(unit.acres||0).toLocaleString()} acres</div><div style={{fontSize:11,color:'#64748B',marginTop:2}}>Complexity: {unit.complexity}</div></div>
+        <div className="card"><div className="card-title">Burn Boss</div><div style={{fontSize:14,fontWeight:700,color:'#E2E8F0',marginTop:4}}>{unit.burnBoss||'—'}</div><div style={{fontSize:11,color:'#64748B',marginTop:2}}>Agency: {unit.agency}</div></div>
+      </div>
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-header"><span className="card-title">Go / No-Go Checklist — Current Conditions</span></div>
+          {checks.map((c,i)=>(
+            <div key={i} className={`go-check ${c.ok?'pass':'fail'}`}>
+              <span>{c.ok?'✓':'✗'}</span>
+              <div style={{flex:1}}>
+                <span style={{fontWeight:600}}>{c.label}</span>
+                <span style={{marginLeft:8,opacity:.8}}>Current: {c.value}</span>
+              </div>
+              <span style={{fontSize:10,opacity:.8}}>Target: {c.target}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div className="card" style={{marginBottom:14}}>
+            <div className="card-header"><span className="card-title">Prescription Parameters (Element 7B)</span></div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:6,fontSize:11}}>
+              {[
+                ['Temp Range',`${unit.rx.tempMin||'—'}–${unit.rx.tempMax||'—'}°F`],
+                ['RH Range',`${unit.rx.rhMin||'—'}–${unit.rx.rhMax||'—'}%`],
+                ['Wind Speed',`${unit.rx.windMin||'—'}–${unit.rx.windMax||'—'} mph`],
+                ['Wind Dir',unit.rx.windDir||'—'],
+                ['10-hr FM',`≤${unit.rx.fm10Max||'—'}%`],
+                ['100-hr FM',`≤${unit.rx.fm100Max||'—'}%`],
+                ['Live FM',`≥${unit.rx.fmLiveMin||'—'}%`],
+                ['Haines',`≤${unit.rx.hainesMax||'—'}`],
+                ['ERC',`≤${unit.rx.ercMax||'—'}`],
+                ['Mix Height',`≥${unit.rx.mixHgtMin||'—'} ft`],
+                ['Transport Wind',`≥${unit.rx.transportMin||'—'} mph`],
+                ['Max Flame Len',`≤${unit.rx.flameLenMax||'—'} ft`],
+              ].map(([k,v])=>(
+                <div key={k} style={{padding:'5px 8px',background:'#152032',borderRadius:4}}>
+                  <div style={{color:'#64748B',marginBottom:1}}>{k}</div>
+                  <div style={{color:'#E2E8F0',fontWeight:600}}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-header"><span className="card-title">Weather Window by Month</span></div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:3}}>
+              {MONTHS.map((m,i)=>(
+                <div key={m} style={{textAlign:'center'}}>
+                  <div style={{background:hmColor(unit.monthly?unit.monthly[i]:0),borderRadius:4,height:32,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:(unit.monthly?unit.monthly[i]:0)>40?'#0F1923':'#E2E8F0'}}>{unit.monthly?unit.monthly[i]:0}%</div>
+                  <div style={{fontSize:9,color:'#64748B',marginTop:2}}>{m}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+      {unit.objectives&&<div className="card" style={{marginTop:14}}>
+        <div className="card-title" style={{marginBottom:8}}>Objectives (Element 3)</div>
+        <p style={{fontSize:13,color:'#CBD5E1',lineHeight:1.6}}>{unit.objectives}</p>
+      </div>}
     </div>
   );
 }
 
 // ─── Map View ────────────────────────────────────────────────────────────────
-function MapView({units, setSelectedUnit, setView}) {
-  const mapRef = useRef(null);
-  const mapInst = useRef(null);
-  useEffect(() => {
-    if (mapInst.current) return;
-    mapInst.current = L.map(mapRef.current, {center:[37.5,-119.5],zoom:6});
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(mapInst.current);
-    units.forEach(u => {
-      const inW = isInWindow(u);
-      const color = inW ? '#22C55E' : u.priorityScore >= 90 ? '#EF4444' : u.priorityScore >= 80 ? '#F59E0B' : '#3B82F6';
-      const marker = L.circleMarker([u.lat,u.lon],{radius:10,fillColor:color,color:'#fff',weight:2,fillOpacity:.85}).addTo(mapInst.current);
-      marker.bindPopup(`<div style="font-family:sans-serif;padding:4px"><b>${u.name}</b><br>${u.forest}<br>${u.acres} acres<br>Window: ${u.windowPct}%<br>Priority: ${u.priorityScore}<br>${inW?'<b style="color:green">✅ IN WINDOW</b>':'⛔ Not in window'}</div>`);
+function MapView({units,setSelectedUnit,setView}){
+  const mapRef=useRef(null);
+  const mapInst=useRef(null);
+  const markersRef=useRef([]);
+  const [shapeLayers,setShapeLayers]=useState([]);
+  const [loadingShape,setLoadingShape]=useState(false);
+  const [dragOver,setDragOver]=useState(false);
+  const layerCounter=useRef(0);
+  const LAYER_COLORS=['#52B788','#F59E0B','#60A5FA','#F472B6','#A78BFA','#34D399','#FB923C','#E879F9'];
+
+  useEffect(()=>{
+    if(mapInst.current||!mapRef.current)return;
+    mapInst.current=L.map(mapRef.current,{center:[37.5,-119.5],zoom:6});
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+      attribution:'©OpenStreetMap ©Carto',maxZoom:19
+    }).addTo(mapInst.current);
+    return()=>{if(mapInst.current){mapInst.current.remove();mapInst.current=null;}};
+  },[]);
+
+  useEffect(()=>{
+    if(!mapInst.current)return;
+    markersRef.current.forEach(m=>m.remove());
+    markersRef.current=[];
+    units.forEach(u=>{
+      if(!u.lat||!u.lon)return;
+      const score=u.priorityScore||0;
+      const color=score>=80?'#52B788':score>=60?'#F59E0B':'#60A5FA';
+      const icon=L.divIcon({
+        html:`<div style="width:12px;height:12px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,.4);box-shadow:0 0 6px ${color}88;"></div>`,
+        className:'',iconSize:[12,12],iconAnchor:[6,6]
+      });
+      const m=L.marker([u.lat,u.lon],{icon}).addTo(mapInst.current)
+        .bindPopup(`<div style="font-family:sans-serif;font-size:12px;background:#1C2D3E;color:#E2E8F0;padding:8px;border-radius:6px;min-width:160px">
+          <strong style="color:#52B788">${u.name}</strong><br/>
+          ${u.forest}<br/>
+          ${u.acres} acres · Priority: ${score}<br/>
+          Window: ${u.windowPct||0}%
+        </div>`,{className:'dark-popup'});
+      m.on('click',()=>{setSelectedUnit(u);setView('detail');});
+      markersRef.current.push(m);
     });
-    return () => { mapInst.current?.remove(); mapInst.current = null; };
-  }, []);
-  return (
-    <div>
-      <div className="card" style={{marginBottom:14}}>
-        <div style={{display:'flex',gap:16,alignItems:'center',fontSize:12}}>
-          <span style={{color:'#64748B'}}>Map Legend:</span>
-          {[['#22C55E','In Window'],['#EF4444','Critical Priority'],['#F59E0B','High Priority'],['#3B82F6','Medium Priority']].map(([c,l]) => (
-            <div key={l} style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:14,height:14,background:c,borderRadius:'50%'}}/><span style={{color:'#94A3B8'}}>{l}</span></div>
+  },[units]);
+
+  async function handleFile(file){
+    if(!mapInst.current||!file)return;
+    setLoadingShape(true);
+    try{
+      const name=file.name.toLowerCase();
+      let geojson=null;
+      if(name.endsWith('.zip')){
+        const zip=await JSZip.loadAsync(file);
+        const entries=Object.values(zip.files);
+        const shpEntry=entries.find(f=>f.name.toLowerCase().endsWith('.shp'));
+        const dbfEntry=entries.find(f=>f.name.toLowerCase().endsWith('.dbf'));
+        if(!shpEntry)throw new Error('No .shp file found in zip');
+        const shpBuf=await shpEntry.async('arraybuffer');
+        const dbfBuf=dbfEntry?await dbfEntry.async('arraybuffer'):undefined;
+        const source=await shapefile.open(shpBuf,dbfBuf);
+        const features=[];
+        let result;
+        while(!(result=await source.read()).done){features.push(result.value);}
+        geojson={type:'FeatureCollection',features};
+      }else if(name.endsWith('.geojson')||name.endsWith('.json')){
+        geojson=JSON.parse(await file.text());
+      }else{
+        throw new Error('Unsupported file type. Use .zip (shapefile) or .geojson');
+      }
+      const id=++layerCounter.current;
+      const colorIdx=(id-1)%LAYER_COLORS.length;
+      const color=LAYER_COLORS[colorIdx];
+      const leafletLayer=L.geoJSON(geojson,{
+        style:{color,weight:2,fillColor:color,fillOpacity:.15},
+        onEachFeature:(feature,layer)=>{
+          if(feature.properties){
+            const props=Object.entries(feature.properties).map(([k,v])=>`<tr><td style="color:#94A3B8;padding:2px 6px">${k}</td><td style="color:#E2E8F0;padding:2px 6px">${v}</td></tr>`).join('');
+            layer.bindPopup(`<div style="font-family:sans-serif;font-size:11px;background:#1C2D3E;color:#E2E8F0;max-height:200px;overflow-y:auto"><table>${props}</table></div>`,{maxWidth:300});
+          }
+          layer.on('mouseover',()=>layer.setStyle({fillOpacity:.3,weight:3}));
+          layer.on('mouseout',()=>layer.setStyle({fillOpacity:.15,weight:2}));
+        }
+      }).addTo(mapInst.current);
+      try{mapInst.current.fitBounds(leafletLayer.getBounds(),{padding:[20,20]});}catch(e){}
+      const featureCount=geojson.features?geojson.features.length:1;
+      setShapeLayers(prev=>[...prev,{id,name:file.name,color,visible:true,layer:leafletLayer,featureCount}]);
+    }catch(err){
+      alert('Error loading file: '+err.message);
+    }finally{
+      setLoadingShape(false);
+    }
+  }
+
+  function toggleLayer(id){
+    setShapeLayers(prev=>prev.map(l=>{
+      if(l.id===id){
+        if(l.visible)mapInst.current.removeLayer(l.layer);
+        else l.layer.addTo(mapInst.current);
+        return{...l,visible:!l.visible};
+      }
+      return l;
+    }));
+  }
+
+  function removeLayer(id){
+    setShapeLayers(prev=>{
+      const l=prev.find(x=>x.id===id);
+      if(l)mapInst.current.removeLayer(l.layer);
+      return prev.filter(x=>x.id!==id);
+    });
+  }
+
+  function onDrop(e){
+    e.preventDefault();setDragOver(false);
+    const file=e.dataTransfer.files[0];
+    if(file)handleFile(file);
+  }
+
+  return(
+    <div style={{flex:1,display:'flex',height:'100%',overflow:'hidden'}}>
+      {/* Layer Panel */}
+      <div style={{width:220,background:'#0A1520',borderRight:'1px solid #1E3448',display:'flex',flexDirection:'column',flexShrink:0}}>
+        <div style={{padding:'12px 14px',borderBottom:'1px solid #1E3448'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94A3B8',textTransform:'uppercase',letterSpacing:.6,marginBottom:8}}>Shapefile Layers</div>
+          <label style={{display:'block',width:'100%'}}>
+            <div className="btn btn-outline" style={{width:'100%',textAlign:'center',fontSize:11,cursor:'pointer',marginBottom:6}}>
+              {loadingShape?'Loading…':'📂 Upload Layer'}
+            </div>
+            <input type="file" accept=".zip,.geojson,.json" style={{display:'none'}} disabled={loadingShape}
+              onChange={e=>{if(e.target.files[0])handleFile(e.target.files[0]);e.target.value='';}}/>
+          </label>
+          <div style={{fontSize:10,color:'#475569',textAlign:'center'}}>Or drag & drop onto map</div>
+          <div style={{fontSize:10,color:'#475569',textAlign:'center',marginTop:2}}>Supports .zip (shapefile) · .geojson</div>
+        </div>
+        <div style={{flex:1,overflowY:'auto',padding:8}}>
+          {shapeLayers.length===0&&(
+            <div style={{padding:'20px 10px',textAlign:'center',color:'#475569',fontSize:11}}>
+              No layers uploaded yet.<br/>Upload a shapefile to visualize burn unit boundaries.
+            </div>
+          )}
+          {shapeLayers.map(l=>(
+            <div key={l.id} style={{background:'#1C2D3E',borderRadius:6,padding:'8px 10px',marginBottom:6,opacity:l.visible?1:.5}}>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+                <div style={{width:10,height:10,borderRadius:2,background:l.color,flexShrink:0}}/>
+                <span style={{fontSize:11,color:'#E2E8F0',flex:1,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{l.name}</span>
+              </div>
+              <div style={{fontSize:10,color:'#64748B',marginBottom:6}}>{l.featureCount} feature{l.featureCount!==1?'s':''}</div>
+              <div style={{display:'flex',gap:4}}>
+                <button className="btn btn-outline btn-sm" style={{flex:1,fontSize:10,padding:'3px 6px'}} onClick={()=>toggleLayer(l.id)}>{l.visible?'Hide':'Show'}</button>
+                <button className="btn btn-danger btn-sm" style={{fontSize:10,padding:'3px 8px'}} onClick={()=>removeLayer(l.id)}>✕</button>
+              </div>
+            </div>
           ))}
-          <div className="drag-zone" style={{padding:'8px 14px',fontSize:12,flex:1,maxWidth:280}}>📁 Drop shapefile (.zip) to overlay burn boundaries</div>
+        </div>
+        <div style={{padding:'12px 14px',borderTop:'1px solid #1E3448'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'#94A3B8',textTransform:'uppercase',letterSpacing:.6,marginBottom:8}}>Burn Units</div>
+          <div style={{fontSize:10,color:'#64748B',marginBottom:6}}>Priority legend:</div>
+          {[['#52B788','High (≥80)'],['#F59E0B','Medium (60–79)'],['#60A5FA','Lower (<60)']].map(([c,l])=>(
+            <div key={l} style={{display:'flex',alignItems:'center',gap:6,marginBottom:4}}>
+              <div style={{width:10,height:10,borderRadius:'50%',background:c,flexShrink:0}}/>
+              <span style={{fontSize:10,color:'#94A3B8'}}>{l}</span>
+            </div>
+          ))}
         </div>
       </div>
-      <div className="card" style={{padding:0,overflow:'hidden'}}>
-        <div ref={mapRef} id="map" style={{height:500,borderRadius:10}}/>
+      {/* Map */}
+      <div style={{flex:1,position:'relative'}}
+        onDragOver={e=>{e.preventDefault();setDragOver(true);}}
+        onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget))setDragOver(false);}}
+        onDrop={onDrop}>
+        <div ref={mapRef} style={{width:'100%',height:'100%'}}/>
+        {dragOver&&(
+          <div style={{position:'absolute',inset:0,background:'rgba(82,183,136,.12)',border:'3px dashed #52B788',borderRadius:0,zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',flexDirection:'column',gap:10,pointerEvents:'none'}}>
+            <div style={{fontSize:48}}>📁</div>
+            <div style={{fontSize:16,fontWeight:700,color:'#52B788'}}>Drop shapefile or GeoJSON here</div>
+          </div>
+        )}
+        {loadingShape&&(
+          <div style={{position:'absolute',top:12,left:'50%',transform:'translateX(-50%)',background:'#1C2D3E',border:'1px solid #2D4057',borderRadius:8,padding:'8px 16px',fontSize:12,color:'#E2E8F0',zIndex:1000}}>
+            ⏳ Loading shapefile…
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
 // ─── Weather View ─────────────────────────────────────────────────────────────
-function WeatherView({units}) {
-  return (
-    <div>
-      <div className="alert alert-orange" style={{marginBottom:14}}><span>⚠️</span><span><strong>Red Flag Warning:</strong> Los Padres NF, Cleveland NF — NE winds 25–40 mph, RH 10–20%, through Feb 25 1800 PST</span></div>
-      <div className="grid-3">
-        {units.map(u => {
-          const c = u.currentCond;
-          const inW = isInWindow(u);
-          return (
-            <div key={u.id} className="card" style={inW?{borderColor:'#166534'}:{}}>
-              <div style={{fontSize:13,fontWeight:700,color:'#E2E8F0',marginBottom:4}}>{u.name}</div>
-              <div style={{fontSize:11,color:'#64748B',marginBottom:12}}>{u.forest} · FEMS Station</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                {[['🌡️ Temp',`${c.temp}°F`],['💧 RH',`${c.rh}%`],['🌬️ Wind',`${c.wind} mph ${c.windDir}`],['🔥 ERC',c.erc],['FM-10',`${c.fm10}%`],['Haines',c.haines]].map(([l,v]) => (
-                  <div key={l} style={{padding:'8px',background:'#152030',borderRadius:6}}>
-                    <div style={{fontSize:10,color:'#64748B'}}>{l}</div>
-                    <div style={{fontSize:14,fontWeight:700,color:'#E2E8F0'}}>{v}</div>
-                  </div>
-                ))}
+function WeatherView({units}){
+  const [sel,setSel]=useState(units[0]||null);
+  useEffect(()=>{if(!sel&&units.length)setSel(units[0]);},[units]);
+  if(!sel)return<div className="content"><div className="card">No units loaded.</div></div>;
+  const c=sel.currentCond||{};
+  const r=sel.rx||{};
+  return(
+    <div className="content">
+      <div style={{marginBottom:14}}>
+        <select className="form-select" style={{maxWidth:320}} value={sel.id} onChange={e=>setSel(units.find(u=>u.id===e.target.value))}>
+          {units.map(u=><option key={u.id} value={u.id}>{u.name}</option>)}
+        </select>
+      </div>
+      <div className="grid-4" style={{marginBottom:16}}>
+        {[
+          {label:'Temperature',val:`${c.temp||'—'}°F`,range:`${r.tempMin}–${r.tempMax}°F`,ok:c.temp>=r.tempMin&&c.temp<=r.tempMax,icon:'🌡️'},
+          {label:'Relative Humidity',val:`${c.rh||'—'}%`,range:`${r.rhMin}–${r.rhMax}%`,ok:c.rh>=r.rhMin&&c.rh<=r.rhMax,icon:'💧'},
+          {label:'Wind Speed',val:`${c.wind||'—'} mph`,range:`${r.windMin}–${r.windMax} mph`,ok:c.wind>=r.windMin&&c.wind<=r.windMax,icon:'💨'},
+          {label:'Air Quality Index',val:`${c.aqi||'—'}`,range:`≤${r.aqiMax}`,ok:c.aqi<=r.aqiMax,icon:'🌫️'},
+        ].map(item=>(
+          <div key={item.label} className="card" style={{borderColor:item.ok?'#2D6A4F':'#7F1D1D'}}>
+            <div style={{fontSize:20,marginBottom:6}}>{item.icon}</div>
+            <div className="card-title">{item.label}</div>
+            <div className="stat-value" style={{fontSize:22,marginTop:4,color:item.ok?'#52B788':'#F87171'}}>{item.val}</div>
+            <div className="stat-sub">Target: {item.range}</div>
+          </div>
+        ))}
+      </div>
+      <div className="grid-2">
+        <div className="card">
+          <div className="card-header"><span className="card-title">Fuel Moisture</span></div>
+          {[
+            {label:'10-hr Fuel Moisture',val:c.fm10,max:r.fm10Max,unit:'%'},
+            {label:'100-hr Fuel Moisture',val:c.fm100,max:r.fm100Max,unit:'%'},
+          ].map(item=>(
+            <div key={item.label} style={{marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:12,color:'#94A3B8'}}>{item.label}</span>
+                <span style={{fontSize:12,fontWeight:700,color:item.val<=item.max?'#52B788':'#F87171'}}>{item.val||'—'}{item.unit} / ≤{item.max}{item.unit}</span>
               </div>
-              <div style={{marginTop:10,textAlign:'center'}}>
-                {inW ? <span className="info-pill pill-green" style={{width:'100%',justifyContent:'center'}}>✅ IN PRESCRIPTION WINDOW</span>
-                     : <span className="info-pill pill-gray" style={{width:'100%',justifyContent:'center'}}>⛔ Outside Prescription</span>}
+              <div style={{height:6,background:'#1E3448',borderRadius:3,overflow:'hidden'}}>
+                <div style={{width:`${Math.min(100,(item.val/item.max)*100)}%`,height:'100%',background:item.val<=item.max?'#52B788':'#F87171',borderRadius:3}}/>
               </div>
             </div>
-          );
-        })}
+          ))}
+        </div>
+        <div className="card">
+          <div className="card-header"><span className="card-title">Fire Indices</span></div>
+          {[
+            {label:'Haines Index',val:c.haines,max:r.hainesMax,dir:'max'},
+            {label:'Energy Release Component',val:c.erc,max:r.ercMax,dir:'max'},
+          ].map(item=>(
+            <div key={item.label} style={{marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:12,color:'#94A3B8'}}>{item.label}</span>
+                <span style={{fontSize:12,fontWeight:700,color:item.val<=item.max?'#52B788':'#F87171'}}>{item.val||'—'} / ≤{item.max}</span>
+              </div>
+              <div style={{height:6,background:'#1E3448',borderRadius:3,overflow:'hidden'}}>
+                <div style={{width:`${Math.min(100,(item.val/item.max)*100)}%`,height:'100%',background:item.val<=item.max?'#52B788':'#F87171',borderRadius:3}}/>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
 // ─── AQI View ─────────────────────────────────────────────────────────────────
-function AQIView({units}) {
-  return (
-    <div>
-      <div className="grid-2" style={{marginBottom:14}}>
-        <div className="card">
-          <div className="card-title" style={{marginBottom:12}}>Current AQI by Unit Location</div>
-          {units.map(u => {
-            const cat = aqiCategory(u.currentCond.aqi);
-            return (
-              <div key={u.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 0',borderBottom:'1px solid #1A2B3C'}}>
-                <div><div style={{fontSize:12,fontWeight:600,color:'#E2E8F0'}}>{u.name}</div><div style={{fontSize:10,color:'#64748B'}}>{u.smoke.airBasin}</div></div>
-                <div style={{textAlign:'right'}}>
-                  <div style={{fontWeight:700,color:cat.color}}>{u.currentCond.aqi}</div>
-                  <div style={{fontSize:10,color:'#64748B'}}>{cat.label}</div>
+function AQIView({units}){
+  const sorted=[...units].sort((a,b)=>((b.currentCond||{}).aqi||0)-((a.currentCond||{}).aqi||0));
+  function aqiColor(v){return v<=50?'#52B788':v<=100?'#FCD34D':v<=150?'#FB923C':'#F87171';}
+  function aqiLabel(v){return v<=50?'Good':v<=100?'Moderate':v<=150?'Unhealthy for Sensitive Groups':'Unhealthy';}
+  return(
+    <div className="content">
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-header"><span className="card-title">Air Quality Index — All Units</span><span style={{fontSize:11,color:'#64748B'}}>Simulated · Connect AirNow API for live data</span></div>
+        {sorted.map(u=>{
+          const aqi=(u.currentCond||{}).aqi||0;
+          const maxAqi=(u.rx||{}).aqiMax||100;
+          return(
+            <div key={u.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:'1px solid #152032'}}>
+              <div style={{width:40,height:40,borderRadius:8,background:aqiColor(aqi),display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:'#0F1923',flexShrink:0}}>{aqi}</div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:12,fontWeight:600,color:'#E2E8F0'}}>{u.name}</div>
+                <div style={{fontSize:10,color:'#64748B'}}>{u.forest} · {aqiLabel(aqi)}</div>
+                <div style={{marginTop:4,height:4,background:'#1E3448',borderRadius:2,overflow:'hidden'}}>
+                  <div style={{width:`${Math.min(100,(aqi/200)*100)}%`,height:'100%',background:aqiColor(aqi),borderRadius:2}}/>
                 </div>
               </div>
-            );
-          })}
-        </div>
-        <div className="card">
-          <div className="card-title" style={{marginBottom:12}}>Air Basin Authorization Status</div>
-          {['San Joaquin Valley APCD','South Coast AQMD','North Coast AQMD','Great Basin Valleys AQMD'].map((basin,i) => {
-            const statuses = ['Burn Day (Open)','No Burn Day','Burn Day (Open)','Burn Day (Open)'];
-            const colors = ['#22C55E','#EF4444','#22C55E','#22C55E'];
-            return (
-              <div key={basin} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #1A2B3C'}}>
-                <span style={{fontSize:12,color:'#94A3B8'}}>{basin}</span>
-                <span style={{fontWeight:700,color:colors[i],fontSize:12}}>{statuses[i]}</span>
+              <div style={{textAlign:'right'}}>
+                <div style={{fontSize:11,color:'#64748B'}}>Rx limit</div>
+                <div style={{fontSize:13,fontWeight:700,color:aqi<=maxAqi?'#52B788':'#F87171'}}>≤{maxAqi}</div>
               </div>
-            );
-          })}
-          <div style={{marginTop:12,fontSize:11,color:'#64748B'}}>Refreshed hourly from CARB & EPA AirNow</div>
-        </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="grid-3">
+        {[['0–50','Good','Favorable for burns. No smoke impacts expected.','#52B788'],
+          ['51–100','Moderate','Monitor smoke dispersion. Brief periods acceptable.','#FCD34D'],
+          ['101–150','USG / Unhealthy','Suspend operations. Smoke management required.','#F87171']
+        ].map(([range,label,desc,color])=>(
+          <div key={label} className="card" style={{borderColor:color}}>
+            <div style={{fontSize:22,fontWeight:700,color,marginBottom:4}}>{range}</div>
+            <div style={{fontSize:12,fontWeight:700,color:'#E2E8F0',marginBottom:4}}>{label}</div>
+            <div style={{fontSize:11,color:'#64748B'}}>{desc}</div>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
 // ─── Add Unit Modal ───────────────────────────────────────────────────────────
-function AddUnitModal({onClose, onSave}) {
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState({
-    name:'',unitId:'',agency:'USFS',forest:'',district:'',lat:'',lon:'',acres:'',complexity:'Low',burnBoss:'',status:'Pending Review',
-    objectives:'',fuels:'',
-    tempMin:40,tempMax:80,rhMin:25,rhMax:55,windMin:5,windMax:20,windDir:'W-NW',mixHt:1500,transport:10,
-    fm1Min:3,fm1Max:10,fm10Min:8,fm10Max:20,fm100Max:25,fm1000Max:35,liveFmMin:80,hainesMax:4,ercMin:20,ercMax:55,flameLenMax:5,
-    targetMonths:[],
-    airBasin:'',permitReq:false,receptors:'',mitigation:'',
-  });
-  const set = (k,v) => setForm(f => ({...f,[k]:v}));
-  const toggleMonth = (m) => set('targetMonths', form.targetMonths.includes(m) ? form.targetMonths.filter(x=>x!==m) : [...form.targetMonths, m]);
-  const steps = ['Unit Info','Description & Objectives','Prescription Params','Scheduling','Smoke Management','Review'];
+const STEP_LABELS=['Basic Info','Location','Prescription','Smoke & Fuels','Scheduling','Review'];
 
-  function handleSave() {
-    const monthlyWindow = MONTHS.map((_,i) => form.targetMonths.includes(i) ? Math.round(10 + Math.random()*20) : Math.round(Math.random()*5));
-    const newUnit = {
-      ...form,lat:parseFloat(form.lat)||37.5,lon:parseFloat(form.lon)||-119.5,acres:parseInt(form.acres)||100,
-      rx:{tempMin:+form.tempMin,tempMax:+form.tempMax,rhMin:+form.rhMin,rhMax:+form.rhMax,windMin:+form.windMin,windMax:+form.windMax,windDir:form.windDir,
-          mixHt:+form.mixHt,transport:+form.transport,fm1Min:+form.fm1Min,fm1Max:+form.fm1Max,fm10Min:+form.fm10Min,fm10Max:+form.fm10Max,
-          fm100Max:+form.fm100Max,fm1000Max:+form.fm1000Max,liveFmMin:+form.liveFmMin,hainesMax:+form.hainesMax,ercMin:+form.ercMin,ercMax:+form.ercMax,flameLenMax:+form.flameLenMax},
-      smoke:{airBasin:form.airBasin,permitReq:form.permitReq,receptors:form.receptors,mitigation:form.mitigation},
-      monthly:monthlyWindow,windowPct:form.targetMonths.length>0?Math.round(monthlyWindow.reduce((s,v)=>s+v,0)/12):5,
-      currentCond:{temp:65,rh:40,wind:10,windDir:'SW',fm10:15,fm100:22,haines:3,erc:40,aqi:35,mixHt:2000,transport:14},
-    };
-    newUnit.priorityScore = calcPriority(newUnit);
-    onSave(newUnit);
+function AddUnitModal({onClose,onSave}){
+  const [step,setStep]=useState(0);
+  const [form,setForm]=useState({
+    name:'',unitId:'',agency:'USFS',forest:'',district:'',burnBoss:'',
+    lat:'',lon:'',acres:'',status:'Planned',complexity:'Low',objectives:'',fuels:'',
+    tempMin:'40',tempMax:'75',rhMin:'25',rhMax:'55',windMin:'3',windMax:'14',windDir:'SW-NW',
+    fm10Max:'12',fm100Max:'18',fmLiveMin:'85',hainesMax:'5',ercMax:'45',
+    mixHgtMin:'2000',transportMin:'10',flameLenMax:'4',aqiMax:'100',
+    sClass:'II',dispersal:'Good',transportWind:'SW',
+    targetMonths:[],
+    temp:'55',rh:'40',wind:'8',fm10:'10',fm100:'15',haines:'4',erc:'30',aqi:'45'
+  });
+  function upd(k,v){setForm(f=>({...f,[k]:v}));}
+  function toggleMonth(m){
+    setForm(f=>({...f,targetMonths:f.targetMonths.includes(m)?f.targetMonths.filter(x=>x!==m):[...f.targetMonths,m].sort((a,b)=>a-b)}));
+  }
+  function calcPriority(){
+    const wp=form.targetMonths.length?Math.round(form.targetMonths.length/12*30):15;
+    const score=Math.round((100-wp)*0.6+(form.status==='Ready'?20:form.status==='Approved'?10:0)+(parseInt(form.acres)>500?10:parseInt(form.acres)>200?5:0));
+    return{windowPct:wp,priorityScore:Math.min(100,score)};
+  }
+  function handleSave(){
+    const{windowPct,priorityScore}=calcPriority();
+    const monthly=Array(12).fill(0).map((_,i)=>form.targetMonths.includes(i+1)?Math.round(10+Math.random()*25):Math.round(Math.random()*5));
+    onSave({
+      name:form.name,unitId:form.unitId,agency:form.agency,forest:form.forest,
+      district:form.district,burnBoss:form.burnBoss,lat:parseFloat(form.lat)||37.5,
+      lon:parseFloat(form.lon)||-119.5,acres:parseInt(form.acres)||0,
+      status:form.status,complexity:form.complexity,objectives:form.objectives,fuels:form.fuels,
+      rx:{tempMin:+form.tempMin,tempMax:+form.tempMax,rhMin:+form.rhMin,rhMax:+form.rhMax,
+        windMin:+form.windMin,windMax:+form.windMax,windDir:form.windDir,
+        fm10Max:+form.fm10Max,fm100Max:+form.fm100Max,fmLiveMin:+form.fmLiveMin,
+        hainesMax:+form.hainesMax,ercMax:+form.ercMax,mixHgtMin:+form.mixHgtMin,
+        transportMin:+form.transportMin,flameLenMax:+form.flameLenMax,aqiMax:+form.aqiMax},
+      smoke:{sClass:form.sClass,dispersal:form.dispersal,transportWind:form.transportWind},
+      targetMonths:form.targetMonths,monthly,windowPct,priorityScore,
+      currentCond:{temp:+form.temp,rh:+form.rh,wind:+form.wind,
+        fm10:+form.fm10,fm100:+form.fm100,haines:+form.haines,erc:+form.erc,aqi:+form.aqi}
+    });
   }
 
-  return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+  const steps=[
+    // Step 0: Basic Info
+    <div key="0">
+      <div className="form-row"><div className="form-group"><label className="form-label">Unit Name *</label><input className="form-input" value={form.name} onChange={e=>upd('name',e.target.value)} placeholder="Crane Flat Understory"/></div><div className="form-group"><label className="form-label">Unit ID</label><input className="form-input" value={form.unitId} onChange={e=>upd('unitId',e.target.value)} placeholder="STF-001"/></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">Agency</label><select className="form-select" value={form.agency} onChange={e=>upd('agency',e.target.value)}><option>USFS</option><option>CAL FIRE</option><option>LG</option><option>WFS</option><option>NPS</option><option>BLM</option><option>BIA</option><option>Tribal</option></select></div><div className="form-group"><label className="form-label">Status</label><select className="form-select" value={form.status} onChange={e=>upd('status',e.target.value)}><option>Draft</option><option>Planned</option><option>Approved</option><option>Ready</option><option>Completed</option><option>Cancelled</option></select></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">National Forest / Unit</label><input className="form-input" value={form.forest} onChange={e=>upd('forest',e.target.value)} placeholder="Stanislaus NF"/></div><div className="form-group"><label className="form-label">District / Zone</label><input className="form-input" value={form.district} onChange={e=>upd('district',e.target.value)} placeholder="Groveland"/></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">Burn Boss</label><input className="form-input" value={form.burnBoss} onChange={e=>upd('burnBoss',e.target.value)} placeholder="Smith, J."/></div><div className="form-group"><label className="form-label">Complexity</label><select className="form-select" value={form.complexity} onChange={e=>upd('complexity',e.target.value)}><option>Low</option><option>Moderate</option><option>High</option></select></div></div>
+    </div>,
+    // Step 1: Location
+    <div key="1">
+      <div className="form-row"><div className="form-group"><label className="form-label">Latitude</label><input className="form-input" type="number" step="0.001" value={form.lat} onChange={e=>upd('lat',e.target.value)} placeholder="37.76"/></div><div className="form-group"><label className="form-label">Longitude</label><input className="form-input" type="number" step="0.001" value={form.lon} onChange={e=>upd('lon',e.target.value)} placeholder="-119.83"/></div></div>
+      <div className="form-group"><label className="form-label">Acres</label><input className="form-input" type="number" value={form.acres} onChange={e=>upd('acres',e.target.value)} placeholder="340"/></div>
+      <div className="form-group"><label className="form-label">Objectives (Element 3)</label><textarea className="form-input" rows={3} value={form.objectives} onChange={e=>upd('objectives',e.target.value)} placeholder="Reduce ladder fuels, restore ponderosa pine understory..."/></div>
+      <div className="form-group"><label className="form-label">Fuel Description</label><input className="form-input" value={form.fuels} onChange={e=>upd('fuels',e.target.value)} placeholder="Mixed conifer litter, manzanita shrub"/></div>
+    </div>,
+    // Step 2: Prescription (Element 7B)
+    <div key="2">
+      <div style={{marginBottom:10,fontSize:11,color:'#64748B'}}>PMS 484-1 Element 7B — Prescription Parameters</div>
+      <div className="form-row"><div className="form-group"><label className="form-label">Temp Min (°F)</label><input className="form-input" type="number" value={form.tempMin} onChange={e=>upd('tempMin',e.target.value)}/></div><div className="form-group"><label className="form-label">Temp Max (°F)</label><input className="form-input" type="number" value={form.tempMax} onChange={e=>upd('tempMax',e.target.value)}/></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">RH Min (%)</label><input className="form-input" type="number" value={form.rhMin} onChange={e=>upd('rhMin',e.target.value)}/></div><div className="form-group"><label className="form-label">RH Max (%)</label><input className="form-input" type="number" value={form.rhMax} onChange={e=>upd('rhMax',e.target.value)}/></div></div>
+      <div className="form-row-3"><div className="form-group"><label className="form-label">Wind Min (mph)</label><input className="form-input" type="number" value={form.windMin} onChange={e=>upd('windMin',e.target.value)}/></div><div className="form-group"><label className="form-label">Wind Max (mph)</label><input className="form-input" type="number" value={form.windMax} onChange={e=>upd('windMax',e.target.value)}/></div><div className="form-group"><label className="form-label">Wind Direction</label><input className="form-input" value={form.windDir} onChange={e=>upd('windDir',e.target.value)} placeholder="SW-NW"/></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">10-hr FM Max (%)</label><input className="form-input" type="number" value={form.fm10Max} onChange={e=>upd('fm10Max',e.target.value)}/></div><div className="form-group"><label className="form-label">100-hr FM Max (%)</label><input className="form-input" type="number" value={form.fm100Max} onChange={e=>upd('fm100Max',e.target.value)}/></div></div>
+      <div className="form-row-3"><div className="form-group"><label className="form-label">Haines Index Max</label><input className="form-input" type="number" value={form.hainesMax} onChange={e=>upd('hainesMax',e.target.value)}/></div><div className="form-group"><label className="form-label">ERC Max</label><input className="form-input" type="number" value={form.ercMax} onChange={e=>upd('ercMax',e.target.value)}/></div><div className="form-group"><label className="form-label">AQI Max</label><input className="form-input" type="number" value={form.aqiMax} onChange={e=>upd('aqiMax',e.target.value)}/></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">Mix Height Min (ft)</label><input className="form-input" type="number" value={form.mixHgtMin} onChange={e=>upd('mixHgtMin',e.target.value)}/></div><div className="form-group"><label className="form-label">Transport Wind Min (mph)</label><input className="form-input" type="number" value={form.transportMin} onChange={e=>upd('transportMin',e.target.value)}/></div></div>
+    </div>,
+    // Step 3: Smoke & Current Conditions
+    <div key="3">
+      <div style={{marginBottom:10,fontSize:11,color:'#64748B'}}>Smoke Management (Element 19) &amp; Current Conditions</div>
+      <div className="form-row-3">
+        <div className="form-group"><label className="form-label">Smoke Class</label><select className="form-select" value={form.sClass} onChange={e=>upd('sClass',e.target.value)}><option>I</option><option>II</option><option>III</option><option>IV</option><option>V</option></select></div>
+        <div className="form-group"><label className="form-label">Dispersal</label><select className="form-select" value={form.dispersal} onChange={e=>upd('dispersal',e.target.value)}><option>Good</option><option>Moderate</option><option>Poor</option></select></div>
+        <div className="form-group"><label className="form-label">Transport Wind Dir</label><input className="form-input" value={form.transportWind} onChange={e=>upd('transportWind',e.target.value)} placeholder="SW"/></div>
+      </div>
+      <div style={{marginBottom:10,marginTop:8,fontSize:11,color:'#64748B',borderTop:'1px solid #1E3448',paddingTop:12}}>Current Conditions (for Go/No-Go check)</div>
+      <div className="form-row"><div className="form-group"><label className="form-label">Current Temp (°F)</label><input className="form-input" type="number" value={form.temp} onChange={e=>upd('temp',e.target.value)}/></div><div className="form-group"><label className="form-label">Current RH (%)</label><input className="form-input" type="number" value={form.rh} onChange={e=>upd('rh',e.target.value)}/></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">Current Wind (mph)</label><input className="form-input" type="number" value={form.wind} onChange={e=>upd('wind',e.target.value)}/></div><div className="form-group"><label className="form-label">Current AQI</label><input className="form-input" type="number" value={form.aqi} onChange={e=>upd('aqi',e.target.value)}/></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">10-hr FM (%)</label><input className="form-input" type="number" value={form.fm10} onChange={e=>upd('fm10',e.target.value)}/></div><div className="form-group"><label className="form-label">100-hr FM (%)</label><input className="form-input" type="number" value={form.fm100} onChange={e=>upd('fm100',e.target.value)}/></div></div>
+      <div className="form-row"><div className="form-group"><label className="form-label">Haines Index</label><input className="form-input" type="number" value={form.haines} onChange={e=>upd('haines',e.target.value)}/></div><div className="form-group"><label className="form-label">ERC</label><input className="form-input" type="number" value={form.erc} onChange={e=>upd('erc',e.target.value)}/></div></div>
+    </div>,
+    // Step 4: Scheduling
+    <div key="4">
+      <div style={{marginBottom:12,fontSize:11,color:'#64748B'}}>Select target burn months based on historical weather windows.</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+        {MONTHS.map((m,i)=>(
+          <div key={m} onClick={()=>toggleMonth(i+1)} style={{padding:'10px 8px',borderRadius:6,border:`2px solid ${form.targetMonths.includes(i+1)?'#52B788':'#2D4057'}`,background:form.targetMonths.includes(i+1)?'#1B4332':'#152032',cursor:'pointer',textAlign:'center',fontSize:13,fontWeight:600,color:form.targetMonths.includes(i+1)?'#52B788':'#64748B',transition:'all .15s'}}>
+            {m}
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop:14,padding:'10px 12px',background:'#152032',borderRadius:8,fontSize:12,color:'#94A3B8'}}>
+        {form.targetMonths.length===0?'No months selected — please select at least one target burn month.':
+        `Selected: ${form.targetMonths.map(m=>MONTHS[m-1]).join(', ')}`}
+      </div>
+    </div>,
+    // Step 5: Review
+    <div key="5">
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+        {[
+          ['Unit Name',form.name||'—'],['Unit ID',form.unitId||'—'],['Agency',form.agency],
+          ['Forest',form.forest||'—'],['District',form.district||'—'],['Acres',form.acres||'—'],
+          ['Status',form.status],['Complexity',form.complexity],['Burn Boss',form.burnBoss||'—'],
+          ['Temp Range',`${form.tempMin}–${form.tempMax}°F`],['RH Range',`${form.rhMin}–${form.rhMax}%`],
+          ['Wind',`${form.windMin}–${form.windMax} mph ${form.windDir}`],
+          ['Target Months',form.targetMonths.map(m=>MONTHS[m-1]).join(', ')||'None'],
+          ['Est. Priority Score',calcPriority().priorityScore],
+        ].map(([k,v])=>(
+          <div key={k} style={{padding:'6px 10px',background:'#152032',borderRadius:4}}>
+            <div style={{fontSize:10,color:'#64748B',marginBottom:1}}>{k}</div>
+            <div style={{fontSize:12,color:'#E2E8F0',fontWeight:600}}>{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  ];
+
+  return(
+    <div className="modal-overlay" onClick={e=>{if(e.target.className==='modal-overlay')onClose();}}>
       <div className="modal">
-        <div className="modal-title">Add Burn Unit — PMS 484-1 Plan</div>
-        <div className="modal-sub">Complete all elements per the NWCG Prescribed Fire Plan Template (December 2021)</div>
-        <div className="step-indicator">{steps.map((_,i) => <div key={i} className={`step ${i<step?'done':i===step?'active':''}`}/>)}</div>
-        <div className="step-label">{steps.map((s,i) => <span key={i} style={i===step?{color:'#52B788',fontWeight:700}:{}}>{s}</span>)}</div>
-
-        {step === 0 && (
-          <div>
-            <div className="section-title">Element 1 & 4 — Unit Identification</div>
-            <div className="form-grid" style={{marginBottom:12}}>
-              <div className="field"><label>Prescribed Fire Name *</label><input value={form.name} onChange={e=>set('name',e.target.value)} placeholder="e.g. Crane Flat Meadow Rx"/></div>
-              <div className="field"><label>Unit ID</label><input value={form.unitId} onChange={e=>set('unitId',e.target.value)} placeholder="e.g. STF-CR-001"/></div>
-              <div className="field"><label>Agency</label><select value={form.agency} onChange={e=>set('agency',e.target.value)}><option>USFS</option><option>CAL FIRE</option><option>NPS</option><option>BLM</option><option>BIA</option><option>Local/Tribal</option></select></div>
-              <div className="field"><label>National Forest / Administrative Unit *</label><input value={form.forest} onChange={e=>set('forest',e.target.value)} placeholder="e.g. Stanislaus NF"/></div>
-              <div className="field"><label>District / Zone</label><input value={form.district} onChange={e=>set('district',e.target.value)} placeholder="e.g. Groveland RD"/></div>
-              <div className="field"><label>Acres *</label><input type="number" value={form.acres} onChange={e=>set('acres',e.target.value)} placeholder="245"/></div>
-            </div>
-            <div className="form-grid-3" style={{marginBottom:12}}>
-              <div className="field"><label>Latitude (WGS84)</label><input value={form.lat} onChange={e=>set('lat',e.target.value)} placeholder="37.754"/></div>
-              <div className="field"><label>Longitude</label><input value={form.lon} onChange={e=>set('lon',e.target.value)} placeholder="-119.832"/></div>
-              <div className="field"><label>Complexity Rating</label><select value={form.complexity} onChange={e=>set('complexity',e.target.value)}><option>Low</option><option>Moderate</option><option>High</option></select></div>
-            </div>
-            <div className="form-grid" style={{marginBottom:12}}>
-              <div className="field"><label>Burn Boss (Name & Qualification)</label><input value={form.burnBoss} onChange={e=>set('burnBoss',e.target.value)} placeholder="Name — RXB2"/></div>
-              <div className="field"><label>Plan Status</label><select value={form.status} onChange={e=>set('status',e.target.value)}><option>Pending Review</option><option>Approved</option><option>Draft</option></select></div>
-            </div>
+        <div className="modal-header">
+          <h3>Add Burn Unit — PMS 484-1</h3>
+          <button className="btn btn-outline btn-sm" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body">
+          <div className="step-indicator">
+            {STEP_LABELS.map((_,i)=><div key={i} className={`step-dot ${i===step?'active':i<step?'done':''}`}/>)}
           </div>
-        )}
-
-        {step === 1 && (
-          <div>
-            <div className="section-title">Element 4B — Fuels Description</div>
-            <div className="field" style={{marginBottom:12}}><label>On-site Fuels / Fuel Model</label><textarea value={form.fuels} onChange={e=>set('fuels',e.target.value)} placeholder="Describe fuel type, fuel model (Anderson 1-13 or SB 40), loading, and conditions..."/></div>
-            <div className="section-title">Element 5 — Objectives</div>
-            <div className="field"><label>Resource & Prescribed Fire Objectives</label><textarea value={form.objectives} onChange={e=>set('objectives',e.target.value)} rows={4} placeholder="Describe resource management objectives, fire behavior objectives, and how prescribed fire will meet them..."/></div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div>
-            <div className="section-title">Element 7B — Prescription Parameters</div>
-            <div className="form-grid-3" style={{marginBottom:8}}>
-              <div className="field"><label>Temperature (°F)</label><div className="range-row"><input type="number" value={form.tempMin} onChange={e=>set('tempMin',e.target.value)} placeholder="Min"/><span className="range-sep">–</span><input type="number" value={form.tempMax} onChange={e=>set('tempMax',e.target.value)} placeholder="Max"/></div></div>
-              <div className="field"><label>Relative Humidity (%)</label><div className="range-row"><input type="number" value={form.rhMin} onChange={e=>set('rhMin',e.target.value)} placeholder="Min"/><span className="range-sep">–</span><input type="number" value={form.rhMax} onChange={e=>set('rhMax',e.target.value)} placeholder="Max"/></div></div>
-              <div className="field"><label>Wind Speed 20ft (mph)</label><div className="range-row"><input type="number" value={form.windMin} onChange={e=>set('windMin',e.target.value)} placeholder="Min"/><span className="range-sep">–</span><input type="number" value={form.windMax} onChange={e=>set('windMax',e.target.value)} placeholder="Max"/></div></div>
-              <div className="field"><label>Wind Direction</label><input value={form.windDir} onChange={e=>set('windDir',e.target.value)} placeholder="e.g. SW–NW (210–330°)"/></div>
-              <div className="field"><label>1-hr Fuel Moisture (%)</label><div className="range-row"><input type="number" value={form.fm1Min} onChange={e=>set('fm1Min',e.target.value)}/><span className="range-sep">–</span><input type="number" value={form.fm1Max} onChange={e=>set('fm1Max',e.target.value)}/></div></div>
-              <div className="field"><label>10-hr Fuel Moisture (%)</label><div className="range-row"><input type="number" value={form.fm10Min} onChange={e=>set('fm10Min',e.target.value)}/><span className="range-sep">–</span><input type="number" value={form.fm10Max} onChange={e=>set('fm10Max',e.target.value)}/></div></div>
-              <div className="field"><label>100-hr FM Max (%)</label><input type="number" value={form.fm100Max} onChange={e=>set('fm100Max',e.target.value)}/></div>
-              <div className="field"><label>1000-hr FM Max (%)</label><input type="number" value={form.fm1000Max} onChange={e=>set('fm1000Max',e.target.value)}/></div>
-              <div className="field"><label>Live FM Min (%)</label><input type="number" value={form.liveFmMin} onChange={e=>set('liveFmMin',e.target.value)}/></div>
-              <div className="field"><label>Haines Index Max</label><input type="number" value={form.hainesMax} onChange={e=>set('hainesMax',e.target.value)} min={1} max={6}/></div>
-              <div className="field"><label>ERC Range</label><div className="range-row"><input type="number" value={form.ercMin} onChange={e=>set('ercMin',e.target.value)}/><span className="range-sep">–</span><input type="number" value={form.ercMax} onChange={e=>set('ercMax',e.target.value)}/></div></div>
-              <div className="field"><label>Mixing Height Min (ft)</label><input type="number" value={form.mixHt} onChange={e=>set('mixHt',e.target.value)}/></div>
-              <div className="field"><label>Transport Wind Min (mph)</label><input type="number" value={form.transport} onChange={e=>set('transport',e.target.value)}/></div>
-              <div className="field"><label>Max Flame Length (ft)</label><input type="number" value={form.flameLenMax} onChange={e=>set('flameLenMax',e.target.value)}/></div>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div>
-            <div className="section-title">Element 8 — Scheduling</div>
-            <div style={{fontSize:12,color:'#94A3B8',marginBottom:10}}>Select target burn months (used to identify prescription windows):</div>
-            <div className="month-checks">
-              {MONTHS.map((m,i) => (
-                <label key={m} className="month-check" style={{padding:'8px 14px',background:form.targetMonths.includes(i)?'#1B4332':'#152030',borderRadius:20,border:`2px solid ${form.targetMonths.includes(i)?'#52B788':'#2D4057'}`}}>
-                  <input type="checkbox" checked={form.targetMonths.includes(i)} onChange={() => toggleMonth(i)} style={{display:'none'}}/>
-                  <span style={{color:form.targetMonths.includes(i)?'#52B788':'#94A3B8',fontWeight:600}}>{m}</span>
-                </label>
-              ))}
-            </div>
-            <div style={{marginTop:16,fontSize:12,color:'#64748B'}}>Selected: {form.targetMonths.length > 0 ? form.targetMonths.map(i=>MONTHS[i]).join(', ') : 'None — please select at least one month'}</div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div>
-            <div className="section-title">Element 19 — Smoke Management & Air Quality</div>
-            <div className="form-grid" style={{marginBottom:12}}>
-              <div className="field"><label>Air Basin</label><select value={form.airBasin} onChange={e=>set('airBasin',e.target.value)}>
-                <option value="">Select Air Basin</option>
-                {['San Joaquin Valley','South Coast','North Coast','Great Basin Valleys','Sacramento Valley','San Francisco Bay Area','Mountain Counties','Lake County','Northeast Plateau'].map(b => <option key={b}>{b}</option>)}
-              </select></div>
-              <div className="field"><label>Smoke Permit Required</label><select value={form.permitReq} onChange={e=>set('permitReq',e.target.value==='true')}>
-                <option value="false">No permit required</option><option value="true">Yes — permit required</option>
-              </select></div>
-              <div className="field"><label>Smoke-Sensitive Receptors</label><input value={form.receptors} onChange={e=>set('receptors',e.target.value)} placeholder="e.g. Town of X (5 mi), Highway Y"/></div>
-              <div className="field"><label>AQI Threshold for No-Go</label><select defaultValue="100"><option value="50">50 — Moderate</option><option value="100">100 — Unhealthy for Sensitive Groups</option><option value="150">150 — Unhealthy</option></select></div>
-            </div>
-            <div className="field"><label>Smoke Mitigation Strategies (Element 19E)</label><textarea value={form.mitigation} onChange={e=>set('mitigation',e.target.value)} placeholder="Describe strategies to reduce smoke impacts on sensitive receptors..."/></div>
-          </div>
-        )}
-
-        {step === 5 && (
-          <div>
-            <div className="section-title">Review — {form.name || 'Unnamed Unit'}</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-              {[['Unit Name',form.name||'—'],['Unit ID',form.unitId||'—'],['Agency',form.agency],['Forest',form.forest||'—'],['Acres',form.acres||'—'],['Status',form.status],
-                ['Target Months',form.targetMonths.map(i=>MONTHS[i]).join(', ')||'None'],['Air Basin',form.airBasin||'—'],['Permit Required',form.permitReq?'Yes':'No'],
-                ['Temp Range',`${form.tempMin}–${form.tempMax}°F`],['RH Range',`${form.rhMin}–${form.rhMax}%`],['Wind Range',`${form.windMin}–${form.windMax} mph`]
-              ].map(([l,v]) => (
-                <div key={l} style={{padding:'8px',background:'#152030',borderRadius:6,border:'1px solid #1E3448'}}>
-                  <div style={{fontSize:10,color:'#64748B'}}>{l}</div>
-                  <div style={{fontSize:13,fontWeight:600,color:'#E2E8F0'}}>{v}</div>
-                </div>
-              ))}
-            </div>
-            <div className="alert alert-green" style={{marginTop:16}}><span>ℹ️</span>After saving, the system will query 15 years of FEMS data to generate prescription window analysis and priority score.</div>
-          </div>
-        )}
-
-        <div style={{display:'flex',gap:10,marginTop:24,justifyContent:'space-between'}}>
-          <button className="btn btn-outline" onClick={onClose}>Cancel</button>
-          <div style={{display:'flex',gap:10}}>
-            {step > 0 && <button className="btn btn-outline" onClick={() => setStep(s=>s-1)}>← Back</button>}
-            {step < steps.length-1 && <button className="btn btn-primary" onClick={() => setStep(s=>s+1)}>Next →</button>}
-            {step === steps.length-1 && <button className="btn btn-primary" onClick={handleSave}>✅ Save Burn Unit</button>}
+          <div style={{marginBottom:12,fontSize:12,color:'#94A3B8',fontWeight:600}}>{STEP_LABELS[step]}</div>
+          {steps[step]}
+        </div>
+        <div className="modal-footer">
+          <div style={{fontSize:11,color:'#64748B'}}>Step {step+1} of {STEP_LABELS.length}</div>
+          <div style={{display:'flex',gap:8}}>
+            {step>0&&<button className="btn btn-outline" onClick={()=>setStep(s=>s-1)}>Back</button>}
+            {step<STEP_LABELS.length-1&&<button className="btn btn-primary" onClick={()=>setStep(s=>s+1)}>Next →</button>}
+            {step===STEP_LABELS.length-1&&<button className="btn btn-primary" onClick={handleSave} disabled={!form.name}>Save Unit</button>}
           </div>
         </div>
       </div>
@@ -1238,155 +1061,182 @@ function AddUnitModal({onClose, onSave}) {
   );
 }
 
-// ─── App ─────────────────────────────────────────────────────────────────────
-function App() {
-  const [view, setView] = useState('dashboard');
-  const [units, setUnits] = useState([]);
-  const [selectedUnit, setSelectedUnit] = useState(null);
-  const [showAdd, setShowAdd] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [dbStatus, setDbStatus] = useState('connecting'); // connecting | live | error
-  const [saveStatus, setSaveStatus] = useState(null); // null | saving | saved | error
-  const [usingSample, setUsingSample] = useState(false);
+// ─── App ──────────────────────────────────────────────────────────────────────
+function App(){
+  const [view,setView]=useState('dashboard');
+  const [units,setUnits]=useState([]);
+  const [usingSample,setUsingSample]=useState(false);
+  const [selectedUnit,setSelectedUnit]=useState(null);
+  const [showAdd,setShowAdd]=useState(false);
+  const [toasts,setToasts]=useState([]);
+  const [realtimeOk,setRealtimeOk]=useState(false);
+  const toastId=useRef(0);
 
-  useEffect(() => { loadUnits(); }, []);
+  function addToast(t){
+    const id=++toastId.current;
+    setToasts(prev=>[...prev,{...t,id}]);
+    setTimeout(()=>setToasts(prev=>prev.filter(x=>x.id!==id)),4000);
+  }
 
-  async function loadUnits() {
-    setLoading(true);
-    try {
-      const { data, error } = await sb.from('burn_units').select('*').order('priority_score', { ascending: false });
-      if (error) throw error;
-      if (data && data.length > 0) {
-        setUnits(data.map(unitFromDB));
-        setUsingSample(false);
-      } else {
-        // Database is empty — show sample data with a banner
-        setUnits(UNITS);
+  // Load from Supabase
+  useEffect(()=>{
+    async function loadUnits(){
+      try{
+        const{data,error}=await sb.from('burn_units').select('*').order('priority_score',{ascending:false});
+        if(error||!data||data.length===0){
+          setUnits(SAMPLE_UNITS);
+          setUsingSample(true);
+        }else{
+          setUnits(data.map(unitFromDB));
+          setUsingSample(false);
+        }
+      }catch(e){
+        setUnits(SAMPLE_UNITS);
         setUsingSample(true);
       }
-      setDbStatus('live');
-    } catch(e) {
-      console.error('Supabase error:', e);
-      setUnits(UNITS);
-      setUsingSample(true);
-      setDbStatus('error');
     }
-    setLoading(false);
+    loadUnits();
+
+    // Real-time subscription
+    const channel=sb.channel('burn_unit_changes')
+      .on('postgres_changes',{event:'INSERT',schema:'public',table:'burn_units'},payload=>{
+        const newUnit=unitFromDB(payload.new);
+        setUnits(prev=>{
+          if(prev.find(u=>u.id===newUnit.id))return prev;
+          return [...prev,newUnit].sort((a,b)=>(b.priorityScore||0)-(a.priorityScore||0));
+        });
+        setUsingSample(false);
+        addToast({title:'New unit added',msg:newUnit.name,icon:'🔥',type:'green'});
+      })
+      .on('postgres_changes',{event:'DELETE',schema:'public',table:'burn_units'},payload=>{
+        setUnits(prev=>prev.filter(u=>u.id!==payload.old.id));
+        addToast({title:'Unit removed',msg:payload.old.name||'',icon:'🗑️',type:'orange'});
+      })
+      .on('postgres_changes',{event:'UPDATE',schema:'public',table:'burn_units'},payload=>{
+        const updated=unitFromDB(payload.new);
+        setUnits(prev=>prev.map(u=>u.id===updated.id?updated:u));
+        addToast({title:'Unit updated',msg:updated.name,icon:'📝',type:'orange'});
+      })
+      .subscribe(status=>setRealtimeOk(status==='SUBSCRIBED'));
+
+    return()=>{sb.removeChannel(channel);};
+  },[]);
+
+  async function saveUnit(unitData){
+    try{
+      if(usingSample){
+        const newUnit={...unitData,id:'local-'+Date.now()};
+        setUnits(prev=>[...prev,newUnit].sort((a,b)=>(b.priorityScore||0)-(a.priorityScore||0)));
+        setShowAdd(false);
+        addToast({title:'Unit added (local)',msg:newUnit.name,icon:'🔥',type:'green'});
+        return;
+      }
+      const{data,error}=await sb.from('burn_units').insert([unitToDB(unitData)]).select();
+      if(error)throw error;
+      setShowAdd(false);
+    }catch(e){
+      addToast({title:'Save failed',msg:e.message,icon:'⚠️',type:'red'});
+    }
   }
 
-  async function saveUnit(u) {
-    setSaveStatus('saving');
-    try {
-      const { error } = await sb.from('burn_units').insert([unitToDB(u)]);
-      if (error) throw error;
-      setSaveStatus('saved');
-      setTimeout(() => setSaveStatus(null), 3000);
-      await loadUnits();
-    } catch(e) {
-      console.error('Save error:', e);
-      setSaveStatus('error');
-      setTimeout(() => setSaveStatus(null), 4000);
-      // Fallback: add locally
-      setUnits(prev => [...prev.filter(x => !UNITS.find(s=>s.id===x.id)), {...u, id: Date.now()}]);
+  async function updateStatus(id,newStatus){
+    setUnits(prev=>prev.map(u=>u.id===id?{...u,status:newStatus}:u));
+    if(id.startsWith('s')||id.startsWith('local'))return;
+    try{
+      await sb.from('burn_units').update({status:newStatus}).eq('id',id);
+      addToast({title:'Status updated',msg:newStatus,icon:'✅',type:'green'});
+    }catch(e){
+      addToast({title:'Update failed',msg:e.message,icon:'⚠️',type:'red'});
     }
   }
 
-  async function deleteUnit(id) {
-    if (!window.confirm('Delete this burn unit? This cannot be undone.')) return;
-    try {
-      const { error } = await sb.from('burn_units').delete().eq('id', id);
-      if (error) throw error;
-      await loadUnits();
-      setView('units');
-    } catch(e) {
-      alert('Error deleting unit: ' + e.message);
+  async function deleteUnit(id){
+    if(id.startsWith('s')||id.startsWith('local')){
+      setUnits(prev=>prev.filter(u=>u.id!==id));
+      return;
+    }
+    try{
+      await sb.from('burn_units').delete().eq('id',id);
+    }catch(e){
+      addToast({title:'Delete failed',msg:e.message,icon:'⚠️',type:'red'});
     }
   }
 
-  function handleSetView(v) { setView(v); }
-  function handleSelectUnit(u) { setSelectedUnit(u); setView('unit-detail'); }
+  const NAV=[
+    {id:'dashboard',icon:'📊',label:'Dashboard'},
+    {id:'heatmap',icon:'🌡️',label:'Heat Map'},
+    {id:'calendar',icon:'📅',label:'Calendar'},
+    {id:'units',icon:'🔥',label:'Burn Units',badge:units.length},
+    {id:'map',icon:'🗺️',label:'Map View'},
+    {id:'weather',icon:'💨',label:'Weather'},
+    {id:'aqi',icon:'🌫️',label:'Air Quality'},
+  ];
 
-  if (loading) return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#0F1923',flexDirection:'column',gap:16}}>
-      <div style={{fontSize:48}}>🔥</div>
-      <div style={{fontSize:18,fontWeight:700,color:'#52B788'}}>RxFire Planner</div>
-      <div style={{fontSize:13,color:'#64748B'}}>Connecting to database...</div>
-      <div style={{width:200,height:4,background:'#1E3448',borderRadius:2,overflow:'hidden'}}>
-        <div style={{width:'60%',height:'100%',background:'#52B788',borderRadius:2,animation:'pulse 1.5s ease-in-out infinite'}}/>
-      </div>
-    </div>
-  );
+  const pendingCount=units.filter(u=>u.status==='Planned'||u.status==='Draft').length;
 
-  return (
+  const mainContent=()=>{
+    if(view==='detail'&&selectedUnit)return<UnitDetail unit={selectedUnit} onBack={()=>setView('units')} onStatusChange={updateStatus}/>;
+    if(view==='heatmap')return<HeatMap units={units}/>;
+    if(view==='calendar')return<CalendarView units={units}/>;
+    if(view==='units')return<BurnUnitsTable units={units} setSelectedUnit={setSelectedUnit} setView={setView} onAdd={()=>setShowAdd(true)} onDelete={deleteUnit}/>;
+    if(view==='map')return<MapView units={units} setSelectedUnit={setSelectedUnit} setView={setView}/>;
+    if(view==='weather')return<WeatherView units={units}/>;
+    if(view==='aqi')return<AQIView units={units}/>;
+    return<Dashboard units={units} setView={setView} setSelectedUnit={setSelectedUnit}/>;
+  };
+
+  return(
     <div className="app">
-      <Sidebar view={view} setView={handleSetView} units={units}/>
+      <div className="sidebar">
+        <div className="logo">
+          <h1>🔥 RxFire Planner</h1>
+          <p>California Prescribed Fire Scheduling</p>
+        </div>
+        <nav className="nav">
+          <div className="nav-section">Planning</div>
+          {NAV.map(n=>(
+            <div key={n.id} className={`nav-item ${view===n.id||(view==='detail'&&n.id==='units')?'active':''}`} onClick={()=>{setView(n.id);setSelectedUnit(null);}}>
+              <span className="icon">{n.icon}</span>
+              <span>{n.label}</span>
+              {n.badge!=null&&<span className={`badge ${n.id==='units'&&pendingCount>0?'orange':''}`}>{n.badge}</span>}
+            </div>
+          ))}
+        </nav>
+        <div className="agency-info">
+          <strong>USFS — Pacific SW Region</strong>
+          <div style={{marginTop:4,display:'flex',alignItems:'center',gap:6}}>
+            {realtimeOk?<><div className="realtime-dot"/><span>Live Sync Active</span></>:<span style={{color:'#475569'}}>⚡ Sample Data</span>}
+          </div>
+        </div>
+      </div>
+
       <div className="main">
         <div className="topbar">
-          <h2>{{dashboard:'Dashboard',heatmap:'Opportunity Heat Map',calendar:'Burn Calendar',units:'Burn Units',map:'Map View',weather:'Fire Weather',aqi:'Air Quality','unit-detail':'Unit Detail',reports:'Reports'}[view] || 'RxFire Planner'}</h2>
-
-          {/* DB status indicator */}
-          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:11}}>
-            <span className={`status-dot ${dbStatus==='live'?'green':dbStatus==='error'?'red':'orange'}`}/>
-            <span style={{color:'#64748B'}}>{dbStatus==='live'?'DB Live':dbStatus==='error'?'DB Error':'Connecting'}</span>
-          </div>
-          <button className="btn btn-outline btn-sm" onClick={loadUnits} title="Refresh data from database">🔄 Refresh</button>
-          <span style={{fontSize:12,color:'#64748B'}}>📅 Feb 24, 2026</span>
-          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>+ Add Burn Unit</button>
-          <button className="btn btn-outline">⬇ Export</button>
-        </div>
-
-        {/* Banners */}
-        {usingSample && dbStatus === 'live' && (
-          <div style={{background:'#1C3D5A',borderBottom:'1px solid #2D6A9F',padding:'10px 20px',fontSize:12,color:'#93C5FD',display:'flex',alignItems:'center',gap:10}}>
-            <span>ℹ️</span>
-            <span>Database is empty — showing sample data. Click <strong>+ Add Burn Unit</strong> to add your first real unit and it will appear for your whole team.</span>
-          </div>
-        )}
-        {dbStatus === 'error' && (
-          <div style={{background:'#3B1A1A',borderBottom:'1px solid #7F1D1D',padding:'10px 20px',fontSize:12,color:'#FCA5A5',display:'flex',alignItems:'center',gap:10}}>
-            <span>⚠️</span>
-            <span>Could not reach database — check your Supabase table is set up (see setup instructions). Showing sample data.</span>
-          </div>
-        )}
-        {saveStatus === 'saving' && (
-          <div style={{background:'#1C3D5A',borderBottom:'1px solid #2D6A9F',padding:'8px 20px',fontSize:12,color:'#93C5FD'}}>💾 Saving to database...</div>
-        )}
-        {saveStatus === 'saved' && (
-          <div style={{background:'#14532D',borderBottom:'1px solid #166534',padding:'8px 20px',fontSize:12,color:'#86EFAC'}}>✅ Saved! All team members will see this unit when they refresh.</div>
-        )}
-        {saveStatus === 'error' && (
-          <div style={{background:'#3B1A1A',borderBottom:'1px solid #7F1D1D',padding:'8px 20px',fontSize:12,color:'#FCA5A5'}}>⚠️ Save failed — unit added locally only. Check database connection.</div>
-        )}
-
-        <div className="content">
-          {view === 'dashboard' && <Dashboard units={units} setView={handleSetView} setSelectedUnit={handleSelectUnit}/>}
-          {view === 'heatmap' && <HeatMap units={units} setSelectedUnit={handleSelectUnit} setView={handleSetView}/>}
-          {view === 'calendar' && <CalendarView units={units}/>}
-          {view === 'units' && <BurnUnitsTable units={units} setSelectedUnit={handleSelectUnit} setView={handleSetView}/>}
-          {view === 'unit-detail' && selectedUnit && <UnitDetail unit={selectedUnit} setView={handleSetView} onDelete={deleteUnit}/>}
-          {view === 'map' && <MapView units={units} setSelectedUnit={handleSelectUnit} setView={handleSetView}/>}
-          {view === 'weather' && <WeatherView units={units}/>}
-          {view === 'aqi' && <AQIView units={units}/>}
-          {view === 'reports' && (
-            <div className="card" style={{textAlign:'center',padding:'60px'}}>
-              <div style={{fontSize:40,marginBottom:16}}>📄</div>
-              <div style={{fontSize:18,fontWeight:700,color:'#E2E8F0',marginBottom:8}}>Reports</div>
-              <div style={{color:'#64748B',fontSize:13,marginBottom:20}}>Export burn season summary, priority rankings, PMS 484-1 plans, and weather window analysis as PDF or Excel.</div>
-              <div style={{display:'flex',gap:10,justifyContent:'center'}}>
-                <button className="btn btn-primary">📊 Export Season Summary</button>
-                <button className="btn btn-outline">📋 Export All PMS 484-1 Plans</button>
-                <button className="btn btn-outline">📈 FEMS Window Analysis Report</button>
-              </div>
+          <h2>{view==='detail'&&selectedUnit?selectedUnit.name:NAV.find(n=>n.id===view)?.label||'Dashboard'}</h2>
+          {usingSample&&(
+            <div className="info-banner" style={{margin:0,padding:'4px 10px',fontSize:11}}>
+              📋 Sample data · <a href="#" style={{color:'#60A5FA'}} onClick={e=>{e.preventDefault();addToast({title:'Supabase Setup',msg:'Run the SQL in README.txt to enable live data',icon:'📋',type:'orange'});}}>Setup DB</a>
             </div>
           )}
+          {(view==='units'||view==='dashboard')&&(
+            <button className="btn btn-primary btn-sm" onClick={()=>setShowAdd(true)}>+ Add Unit</button>
+          )}
         </div>
+        {view==='map'?<div style={{flex:1,display:'flex',overflow:'hidden'}}>{mainContent()}</div>:mainContent()}
       </div>
-      {showAdd && <AddUnitModal onClose={() => setShowAdd(false)} onSave={u => { setShowAdd(false); saveUnit(u); }}/>}
+
+      {showAdd&&<AddUnitModal onClose={()=>setShowAdd(false)} onSave={saveUnit}/>}
+      <ToastContainer toasts={toasts}/>
     </div>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+const root=ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
 </script>
+<style>
+.dark-popup .leaflet-popup-content-wrapper{background:#1C2D3E;border:1px solid #2D4057;color:#E2E8F0;box-shadow:0 4px 20px rgba(0,0,0,.5);}
+.dark-popup .leaflet-popup-tip{background:#1C2D3E;}
+</style>
 </body>
 </html>
